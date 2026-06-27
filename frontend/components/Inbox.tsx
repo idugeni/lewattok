@@ -28,7 +28,7 @@ import {
   User,
 } from "lucide-react";
 import type { EmailMessage } from "@/lib/types";
-import { MessageView } from "./MessageView";
+import { MessageView } from "@/components/MessageView";
 
 const POLL_INTERVAL_MS = 4000;
 const TTL_MS = 15 * 60 * 1000;
