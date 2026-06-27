@@ -1,0 +1,11 @@
+name = "aurelion-email-worker"
+main = "src/index.ts"
+compatibility_date = "2024-11-27"
+account_id = "2fa5c3941e008ed06e4b41d7342d3fa9"
+
+[[kv_namespaces]]
+binding = "EMAIL_KV"
+id = "3e13531dd258466a9f0cc19f32f43e24"
+
+[vars]
+DOMAIN = "aurelion.web.id"

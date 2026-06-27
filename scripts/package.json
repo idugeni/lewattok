@@ -1,0 +1,16 @@
+{
+  "name": "aurelion-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "npx tsx setup-cloudflare.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
