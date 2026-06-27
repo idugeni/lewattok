@@ -17,8 +17,7 @@ export function GenerateKeyButton() {
     setKey(null);
 
     try {
-      const workerUrl = process.env.NEXT_PUBLIC_WORKER_URL || "https://aurelion-email-worker.officialelsa21516.workers.dev";
-      const res = await fetch(`${workerUrl}/api/v1/public/key`, { method: "POST" });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_WORKER_URL}/api/v1/public/key`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate key");
       setKey(data.key);

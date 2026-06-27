@@ -9,7 +9,7 @@ const NOUNS = [
 ];
 
 function getDomain(): string {
-  return process.env.NEXT_PUBLIC_APP_DOMAIN ?? "mail.aurelion.dev";
+  return process.env.NEXT_PUBLIC_APP_DOMAIN!;
 }
 
 export function generateRandomAddress(): string {

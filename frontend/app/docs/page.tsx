@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   },
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_WORKER_URL || "https://aurelion-email-worker.officialelsa21516.workers.dev";
+const BASE_URL = process.env.NEXT_PUBLIC_WORKER_URL!;
 
 export default function DocsPage() {
   return (
