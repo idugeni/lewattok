@@ -186,5 +186,19 @@
     background: transparent;
     font-family: var(--font-mono, ui-monospace, monospace);
     line-height: 1.6;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  pre > code {
+    display: block;
+    min-width: fit-content;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .touch-scroll {
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
   }
 }

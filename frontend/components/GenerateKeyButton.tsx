@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Key, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 
@@ -21,7 +22,9 @@ export function GenerateKeyButton() {
       if (!res.ok) throw new Error(data.error || "Failed to generate key");
       setKey(data.key);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setError(msg);
+      toast.error("Failed to generate key", { description: msg });
     } finally {
       setLoading(false);
     }
@@ -32,6 +35,7 @@ export function GenerateKeyButton() {
     await navigator.clipboard.writeText(key);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    toast.success("API key copied!", { description: "You won't be able to see it again." });
   };
 
   if (key) {

@@ -1,19 +1,31 @@
+import type { Metadata } from "next";
 import { BookOpen, Key, Mail, Inbox, Shield, Code, Terminal, Globe, Plus, Trash2, List, Settings } from "lucide-react";
 import { GenerateKeyButton } from "@/components/GenerateKeyButton";
+
+export const metadata: Metadata = {
+  title: "API Documentation",
+  description:
+    "Programmatically generate disposable email addresses and retrieve incoming messages. API reference for inbox creation, message retrieval, and key management.",
+  openGraph: {
+    title: "API Documentation — Aurelion",
+    description:
+      "Programmatically generate disposable email addresses and retrieve incoming messages.",
+  },
+};
 
 const BASE_URL = "https://aurelion-email-worker.officialelsa21516.workers.dev";
 
 export default function DocsPage() {
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-16">
-        <header className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-            <BookOpen className="size-3.5" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
+        <header className="space-y-3 sm:space-y-4">
+          <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] sm:text-xs font-medium">
+            <BookOpen className="size-3 sm:size-3.5" />
             API Documentation
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Aurelion API</h1>
-          <p className="text-muted-foreground max-w-2xl leading-relaxed">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Aurelion API</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
             Programmatically generate disposable email addresses and retrieve incoming messages.
             Perfect for testing, automation, and privacy-focused workflows.
           </p>
@@ -56,15 +68,15 @@ export default function DocsPage() {
           </div>
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-4 sm:space-y-6">
           <div className="flex items-center gap-3">
             <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <Globe className="size-4 text-primary" />
             </div>
-            <h2 className="text-xl font-semibold">Base URL</h2>
+            <h2 className="text-lg sm:text-xl font-semibold">Base URL</h2>
           </div>
-          <div className="bg-muted/50 rounded-xl border p-4">
-            <pre className="text-sm text-primary font-mono">{BASE_URL}</pre>
+          <div className="bg-muted/50 rounded-xl border p-3 sm:p-4 overflow-x-auto">
+            <pre className="text-xs sm:text-sm text-primary font-mono whitespace-nowrap">{BASE_URL}</pre>
           </div>
         </section>
 
