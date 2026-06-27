@@ -349,12 +349,11 @@ const inbox = await res.json();
           <div className="bg-muted/50 rounded-xl border p-4 text-sm text-muted-foreground leading-relaxed space-y-2">
             <p>Current rate limits per API key:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>60 requests per minute</strong> across all endpoints</li>
-              <li><strong>1000 inbox creations per day</strong></li>
+              <li><strong>60 requests per minute</strong> across all authenticated endpoints</li>
+              <li><strong>1 key per hour</strong> for self-service key generation (per IP)</li>
             </ul>
             <p className="text-xs text-muted-foreground/70 mt-3">
               Exceeding these limits returns <code className="code-inline">429 Too Many Requests</code>.
-              Contact the administrator for higher limits.
             </p>
           </div>
         </section>

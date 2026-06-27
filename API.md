@@ -228,7 +228,6 @@ GET /api/messages?recipient={email}&since={iso_date}
 | Limit | Scope | Window |
 |-------|-------|--------|
 | 60 requests | Per API key | 1 minute |
-| 1000 inboxes | Per API key | 1 day |
 | 1 key | Per IP | 1 hour (public endpoint only) |
 
 Exceeding limits returns `429 Too Many Requests`.

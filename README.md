@@ -212,7 +212,6 @@ Keys expire after 30 days. One key per IP per hour.
 | Limit | Scope | Window |
 |-------|-------|--------|
 | 60 requests | Per API key | 1 minute |
-| 1000 inboxes | Per API key | 1 day |
 | 1 key | Per IP | 1 hour (public endpoint only) |
 
 ### Error Responses
@@ -239,4 +238,13 @@ All errors return a JSON body:
 4. The Worker parses the MIME content (subject, text body, HTML body)
 5. The parsed message is stored in Cloudflare KV with a 15-minute TTL
 6. When you poll the API, messages are returned from KV
-7. After 15 minutes, KV automatically expires the data
+7. Email HTML is sanitized with DOMPurify before rendering (XSS prevention)
+8. After 15 minutes, KV automatically expires the data
+
+## Security
+
+- **DOMPurify** — All email HTML is sanitized to prevent XSS attacks
+- **Rate limiting** — 60 requests/minute per API key
+- **Link isolation** — Email links open in new tabs with `rel="noopener noreferrer"`
+- **Auto-expiry** — Messages and addresses are permanently deleted after 15 minutes
+- **API key auth** — All sensitive endpoints require authentication

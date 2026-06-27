@@ -36,14 +36,18 @@ The following are in scope:
 
 | Version | Supported |
 |---------|-----------|
+| 1.1.x | Yes |
 | 1.0.x | Yes |
 
 ## Security Measures
 
 - API key authentication on all sensitive endpoints
-- Rate limiting on key generation and API requests
-- HTML sanitization on email rendering
-- Script and iframe stripping from email content
-- KV expiration for automatic data cleanup
+- Rate limiting: 60 requests/minute per API key (KV sliding window)
+- DOMPurify for email HTML sanitization (prevents XSS, script injection)
+- Link security: all email links open with `target="_blank"` + `rel="noopener noreferrer"`
+- Message deduplication on write to prevent data loss from race conditions
+- JSON.parse wrapped in try/catch to prevent crash on corrupted KV data
+- Clipboard operations with error handling and user feedback
+- KV expiration for automatic data cleanup (15-minute TTL)
 - Row-level security on database tables
 - CORS headers on API responses
