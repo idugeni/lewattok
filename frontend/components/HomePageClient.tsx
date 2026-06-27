@@ -15,6 +15,36 @@ import {
 import { Inbox } from "@/components/Inbox";
 import { AlertCircle } from "lucide-react";
 
+const STORAGE_KEY = "aurelion_inbox";
+const TTL_MS = 15 * 60 * 1000;
+
+interface StoredInbox {
+  address: string;
+  createdAt: string;
+}
+
+function loadInbox(): StoredInbox | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data: StoredInbox = JSON.parse(raw);
+    const elapsed = Date.now() - new Date(data.createdAt).getTime();
+    if (elapsed >= TTL_MS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return data;
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+}
+
+function saveInbox(address: string) {
+  const data: StoredInbox = { address, createdAt: new Date().toISOString() };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
 export function HomePageClient() {
   const [address, setAddress] = useState<string | null>(null);
   const [key, setKey] = useState(0);
@@ -23,7 +53,13 @@ export function HomePageClient() {
   const [confirmNew, setConfirmNew] = useState(false);
 
   useEffect(() => {
-    generate();
+    const stored = loadInbox();
+    if (stored) {
+      setAddress(stored.address);
+      setCreatedAt(new Date(stored.createdAt));
+    } else {
+      generate();
+    }
   }, []);
 
   const generate = async (isUserInitiated = false) => {
@@ -34,8 +70,9 @@ export function HomePageClient() {
       if (!res.ok) throw new Error("Failed to generate address");
       const data = await res.json();
       setAddress(data.address);
-      setKey((k) => k + 1);
       setCreatedAt(new Date());
+      saveInbox(data.address);
+      setKey((k) => k + 1);
       if (isUserInitiated) {
         toast.success("New address generated!", { description: data.address });
       }
