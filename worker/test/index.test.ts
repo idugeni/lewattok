@@ -24,9 +24,9 @@ describe("MimeParser", () => {
   });
 
   it("decodes quoted-printable content", () => {
-    const raw = `Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n=C2=A9 2024 Aurelion`;
+    const raw = `Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n=C2=A9 2026 Aurelion`;
     const result = new MimeParser(raw).parse();
-    expect(result.text).toBe("\u00a9 2024 Aurelion");
+    expect(result.text).toBe("\u00a9 2026 Aurelion");
   });
 
   it("parses multipart/alternative email", () => {

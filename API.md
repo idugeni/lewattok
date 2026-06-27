@@ -73,7 +73,7 @@ GET /api/v1/inboxes/{email}/messages?since={iso_date}
       "subject": "Hello!",
       "body_text": "Plain text content...",
       "body_html": "<html>...</html>",
-      "created_at": "2024-01-01T00:00:00.000Z"
+      "created_at": "2026-01-01T00:00:00.000Z"
     }
   ]
 }
@@ -103,8 +103,8 @@ POST /api/v1/public/key
   "key": "al_a805d555d3b875d4a88605219bae4a6261babddebfc1f8c9",
   "name": "",
   "source": "public",
-  "created": "2024-01-01T00:00:00.000Z",
-  "expires_at": "2024-01-31T00:00:00.000Z",
+  "created": "2026-01-01T00:00:00.000Z",
+  "expires_at": "2026-01-31T00:00:00.000Z",
   "last_used": null
 }
 ```
@@ -136,7 +136,7 @@ POST /api/v1/admin/keys?ttl={seconds}
 {
   "key": "al_a805d555d3b875d4a88605219bae4a6261babddebfc1f8c9",
   "name": "",
-  "created": "2024-01-01T00:00:00.000Z",
+  "created": "2026-01-01T00:00:00.000Z",
   "last_used": null
 }
 ```
@@ -155,9 +155,9 @@ GET /api/v1/admin/keys
     {
       "key": "al_a805...",
       "name": "",
-      "created": "2024-01-01T00:00:00.000Z",
+      "created": "2026-01-01T00:00:00.000Z",
       "expires_at": null,
-      "last_used": "2024-01-02T00:00:00.000Z"
+      "last_used": "2026-01-02T00:00:00.000Z"
     }
   ]
 }

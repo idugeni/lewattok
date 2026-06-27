@@ -175,7 +175,7 @@ export default function DocsPage() {
                     <br />
                     <span className="ml-12">&quot;body_html&quot;: &quot;&lt;html&gt;...&lt;/html&gt;&quot;,</span>
                     <br />
-                    <span className="ml-12">&quot;created_at&quot;: &quot;2024-01-01T00:00:00.000Z&quot;</span>
+                    <span className="ml-12">&quot;created_at&quot;: &quot;2026-01-01T00:00:00.000Z&quot;</span>
                     <br />
                     <span className="ml-8">{`}`}</span>
                     <br />
@@ -199,7 +199,7 @@ export default function DocsPage() {
                 <div>
                   <p className="text-xs text-muted-foreground font-mono mb-2">Request</p>
                   <pre className="text-sm">
-                    <span className="text-muted-foreground">curl &quot;{BASE_URL}/api/v1/messages?recipient=bold.wave4404@aurelion.web.id&amp;since=2024-01-01T00:00:00.000Z&quot; \</span>
+                    <span className="text-muted-foreground">curl &quot;{BASE_URL}/api/v1/messages?recipient=bold.wave4404@aurelion.web.id&amp;since=2026-01-01T00:00:00.000Z&quot; \</span>
                     <br />
                     <span className="text-muted-foreground">  -H &quot;X-API-Key: your_api_key_here&quot;</span>
                   </pre>

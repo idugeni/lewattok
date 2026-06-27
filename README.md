@@ -112,7 +112,7 @@ curl "https://your-worker.workers.dev/api/v1/messages?recipient=bold.wave4404@au
 **With polling (only new messages):**
 
 ```bash
-curl "https://your-worker.workers.dev/api/v1/messages?recipient=bold.wave4404@aurelion.web.id&since=2024-01-01T00:00:00.000Z" \
+curl "https://your-worker.workers.dev/api/v1/messages?recipient=bold.wave4404@aurelion.web.id&since=2026-01-01T00:00:00.000Z" \
   -H "X-API-Key: your_api_key"
 ```
 
@@ -129,7 +129,7 @@ curl "https://your-worker.workers.dev/api/v1/messages?recipient=bold.wave4404@au
       "subject": "Hello!",
       "body_text": "Plain text content...",
       "body_html": "<html>...</html>",
-      "created_at": "2024-01-01T00:00:00.000Z"
+      "created_at": "2026-01-01T00:00:00.000Z"
     }
   ]
 }
@@ -189,7 +189,7 @@ curl -X POST https://your-worker.workers.dev/api/v1/public/key
 ```json
 {
   "key": "al_a805d555d3b875d4a88605219bae4a6261babddebfc1f8c9",
-  "expires_at": "2024-01-31T00:00:00.000Z"
+  "expires_at": "2026-01-31T00:00:00.000Z"
 }
 ```
 
