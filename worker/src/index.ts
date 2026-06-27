@@ -17,6 +17,14 @@ interface Env {
   DOMAIN: string;
 }
 
+interface KeyMeta {
+  name: string;
+  source?: string;
+  created: string;
+  expires_at?: string;
+  last_used: string | null;
+}
+
 function json(data: unknown, status = 200, cors = false): Response {
   const res = Response.json(data, { status });
   if (cors) {
@@ -40,11 +48,11 @@ async function requireAuth(request: Request, env: Env): Promise<boolean> {
   const key = request.headers.get("X-API-Key");
   if (!key) return false;
   if (key === env.API_KEY) return true;
-  const stored = await env.EMAIL_KV.get("apikey_" + key);
-  if (!stored) return false;
-  const meta = JSON.parse(stored);
+  const raw = await env.EMAIL_KV.get("apikey_" + key);
+  if (!raw) return false;
+  const meta: KeyMeta = JSON.parse(raw);
   if (meta.expires_at && Date.now() > new Date(meta.expires_at).getTime()) {
-    await env.EMAIL_KV.delete("apikey_" + key);
+    await env.EMAIL_KV.delete("apikey_" + key).catch(() => {});
     return false;
   }
   env.EMAIL_KV.put("apikey_" + key, JSON.stringify({ ...meta, last_used: new Date().toISOString() })).catch(() => {});
@@ -171,7 +179,7 @@ export default {
       const key = generateApiKey();
       const now = new Date().toISOString();
       const ttl = parseInt(url.searchParams.get("ttl") || "") || null;
-      const meta: Record<string, unknown> = { name: "", created: now, last_used: null };
+      const meta: KeyMeta = { name: "", created: now, last_used: null };
       if (ttl) meta.expires_at = new Date(Date.now() + ttl * 1000).toISOString();
       const kvOpts = ttl ? { expirationTtl: ttl } : undefined;
       await env.EMAIL_KV.put("apikey_" + key, JSON.stringify(meta), kvOpts);
@@ -181,18 +189,19 @@ export default {
     if (path === "/api/v1/admin/keys" && method === "GET") {
       if (!requireMaster(request, env)) return errorResponse(401, "Master key required", true);
       const listed = await env.EMAIL_KV.list({ prefix: "apikey_" });
-      const keys = [];
+      const keys: { key: string; name: string; created: string; expires_at: string | null; last_used: string | null }[] = [];
       for (const item of listed.keys) {
-        const meta = await env.EMAIL_KV.get(item.name, "json").catch(() => null);
+        const raw = await env.EMAIL_KV.get(item.name).catch(() => null);
+        const meta: KeyMeta | null = raw ? JSON.parse(raw) : null;
         const short = item.name.replace("apikey_", "");
-        keys.push({ key: short.slice(0, 12) + "...", name: meta?.name || "", created: meta?.created || "", expires_at: meta?.expires_at || null, last_used: meta?.last_used || null });
+        keys.push({ key: short.slice(0, 12) + "...", name: meta?.name ?? "", created: meta?.created ?? "", expires_at: meta?.expires_at ?? null, last_used: meta?.last_used ?? null });
       }
       return json({ keys }, 200, true);
     }
 
     if (path === "/api/v1/admin/keys" && method === "DELETE") {
       if (!requireMaster(request, env)) return errorResponse(401, "Master key required", true);
-      const body = await request.json().catch(() => null);
+      const body = await request.json().catch(() => null) as { key?: string } | null;
       const target = body?.key;
       if (!target) return errorResponse(400, "Missing 'key' in request body", true);
       await env.EMAIL_KV.delete("apikey_" + target);

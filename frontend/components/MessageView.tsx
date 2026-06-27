@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { X, User, Clock, FileText, Monitor } from "lucide-react";
 import type { EmailMessage } from "@/lib/types";
 

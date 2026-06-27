@@ -57,6 +57,7 @@ export function Inbox({ address, onNew }: InboxProps) {
 
         lastFetchRef.current = new Date().toISOString();
       } catch {
+        // Silently ignore fetch errors during polling
       } finally {
         setIsLoading(false);
       }
