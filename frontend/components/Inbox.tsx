@@ -45,17 +45,16 @@ export function Inbox({ address, onNew, createdAt }: InboxProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const lastFetchRef = useRef<string>(new Date(0).toISOString());
-  const prevCountRef = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
-  const [ttlRemaining, setTtlRemaining] = useState(100);
+  const [ttlSeconds, setTtlSeconds] = useState(Math.floor(TTL_MS / 1000));
 
   const startTimeRef = useRef(createdAt?.getTime() ?? Date.now());
 
   useEffect(() => {
     const update = () => {
       const elapsed = Date.now() - startTimeRef.current;
-      const remaining = Math.max(0, 100 - (elapsed / TTL_MS) * 100);
-      setTtlRemaining(remaining);
+      const remainingSec = Math.max(0, Math.ceil((TTL_MS - elapsed) / 1000));
+      setTtlSeconds(remainingSec);
     };
     update();
     const interval = setInterval(update, 1000);
@@ -75,7 +74,6 @@ export function Inbox({ address, onNew, createdAt }: InboxProps) {
 
         if (isInitial) {
           setMessages(incoming);
-          prevCountRef.current = incoming.length;
         } else if (incoming.length > 0) {
           setMessages((prev) => {
             const existingIds = new Set(prev.map((m) => m.id));
@@ -137,22 +135,23 @@ export function Inbox({ address, onNew, createdAt }: InboxProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [messages, selectedId]);
 
+  const safeCopy = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied!`, { description: text });
+    } catch {
+      toast.error("Failed to copy", { description: "Clipboard access denied." });
+    }
+  };
+
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(address);
+    await safeCopy(address, "Address");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast.success("Address copied!", { description: address });
   };
 
-  const handleCopySender = async (sender: string) => {
-    await navigator.clipboard.writeText(sender);
-    toast.success("Sender copied!", { description: sender });
-  };
-
-  const handleCopySubject = async (subject: string) => {
-    await navigator.clipboard.writeText(subject);
-    toast.success("Subject copied!", { description: subject });
-  };
+  const handleCopySender = (sender: string) => safeCopy(sender, "Sender");
+  const handleCopySubject = (subject: string) => safeCopy(subject, "Subject");
 
   const selectedMessage = messages.find((m) => m.id === selectedId) ?? null;
 
@@ -193,11 +192,11 @@ export function Inbox({ address, onNew, createdAt }: InboxProps) {
         </Tooltip>
 
         <div className="space-y-2">
-          <Progress value={ttlRemaining} className="h-1" />
+          <Progress value={(ttlSeconds / (TTL_MS / 1000)) * 100} className="h-1" />
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <span className={`size-1.5 rounded-full ${ttlRemaining > 20 ? "bg-emerald-500/70" : "bg-red-500/70 animate-pulse"}`} />
-              {ttlRemaining > 0 ? "Expires in 15m" : "Expired"}
+              <span className={`size-1.5 rounded-full ${ttlSeconds > 120 ? "bg-emerald-500/70" : ttlSeconds > 0 ? "bg-amber-500/70" : "bg-red-500/70 animate-pulse"}`} />
+              {ttlSeconds > 0 ? `Expires in ${formatTtl(ttlSeconds)}` : "Expired"}
             </span>
             <span className="text-border">·</span>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
@@ -284,10 +283,9 @@ export function Inbox({ address, onNew, createdAt }: InboxProps) {
                       <Copy className="size-4" />
                       Copy subject
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={async () => {
+                    <DropdownMenuItem onClick={() => {
                       const text = `${msg.sender}\n${msg.subject}\n${msg.body_text || ""}`;
-                      await navigator.clipboard.writeText(text);
-                      toast.success("Content copied!");
+                      safeCopy(text, "Content");
                     }}>
                       <Copy className="size-4" />
                       Copy full content
@@ -372,4 +370,13 @@ function formatTime(iso: string): string {
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h`;
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatTtl(seconds: number): string {
+  if (seconds >= 60) {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return sec > 0 ? `${min}m ${sec}s` : `${min}m`;
+  }
+  return `${seconds}s`;
 }

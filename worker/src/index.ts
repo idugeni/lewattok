@@ -1,15 +1,5 @@
 import { MimeParser } from "./mime";
-
-interface EmailMessage {
-  id: string;
-  message_id: string;
-  recipient: string;
-  sender: string;
-  subject: string;
-  body_text: string;
-  body_html: string;
-  created_at: string;
-}
+import type { EmailMessage } from "../../shared/types";
 
 interface Env {
   EMAIL_KV: KVNamespace;
@@ -50,7 +40,12 @@ async function requireAuth(request: Request, env: Env): Promise<boolean> {
   if (key === env.API_KEY) return true;
   const raw = await env.EMAIL_KV.get("apikey_" + key);
   if (!raw) return false;
-  const meta: KeyMeta = JSON.parse(raw);
+  let meta: KeyMeta;
+  try {
+    meta = JSON.parse(raw);
+  } catch {
+    return false;
+  }
   if (meta.expires_at && Date.now() > new Date(meta.expires_at).getTime()) {
     await env.EMAIL_KV.delete("apikey_" + key).catch(() => {});
     return false;
@@ -85,6 +80,23 @@ function generateRandomAddress(domain: string): string {
   return `${adj}.${noun}${suffix}@${domain}`;
 }
 
+const RATE_LIMIT = 60;
+const RATE_WINDOW = 60;
+
+async function checkRateLimit(kv: KVNamespace, key: string): Promise<{ allowed: boolean; remaining: number }> {
+  const now = Math.floor(Date.now() / 1000);
+  const windowKey = `rl_${key}_${Math.floor(now / RATE_WINDOW)}`;
+  const raw = await kv.get(windowKey);
+  const count = raw ? parseInt(raw, 10) : 0;
+
+  if (count >= RATE_LIMIT) {
+    return { allowed: false, remaining: 0 };
+  }
+
+  await kv.put(windowKey, String(count + 1), { expirationTtl: RATE_WINDOW * 2 });
+  return { allowed: true, remaining: RATE_LIMIT - count - 1 };
+}
+
 export default {
   async email(message: ForwardableEmailMessage, env: Env): Promise<void> {
     const raw = await readRawMessage(message);
@@ -114,7 +126,11 @@ export default {
 
     const existing = await env.EMAIL_KV.get(recipient, "json").catch(() => null);
     const messages: EmailMessage[] = Array.isArray(existing) ? existing : [];
-    messages.push(msg);
+
+    const existingIds = new Set(messages.map((m) => m.message_id));
+    if (!existingIds.has(msg.message_id)) {
+      messages.push(msg);
+    }
 
     await env.EMAIL_KV.put(recipient, JSON.stringify(messages), {
       expirationTtl: 900,
@@ -142,14 +158,20 @@ export default {
 
     if (path === "/api/v1/generate" || path === "/api/v1/inboxes") {
       if (method !== "POST") return errorResponse(405, "Method not allowed", true);
+      const authKey = request.headers.get("X-API-Key") || "anonymous";
       if (!(await requireAuth(request, env))) return errorResponse(401, "Invalid or missing API key", true);
+      const { allowed } = await checkRateLimit(env.EMAIL_KV, authKey);
+      if (!allowed) return errorResponse(429, "Rate limit exceeded. Max 60 requests per minute.", true);
       const address = generateRandomAddress(env.DOMAIN);
       return json({ address }, 201, true);
     }
 
     if (path === "/api/v1/messages" || path.startsWith("/api/v1/inboxes/")) {
       if (method !== "GET") return errorResponse(405, "Method not allowed", true);
+      const authKey = request.headers.get("X-API-Key") || "anonymous";
       if (!(await requireAuth(request, env))) return errorResponse(401, "Invalid or missing API key", true);
+      const { allowed } = await checkRateLimit(env.EMAIL_KV, authKey);
+      if (!allowed) return errorResponse(429, "Rate limit exceeded. Max 60 requests per minute.", true);
 
       let recipient = url.searchParams.get("recipient");
       if (!recipient && path.startsWith("/api/v1/inboxes/")) {
@@ -176,6 +198,8 @@ export default {
 
     if (path === "/api/v1/admin/keys" && method === "POST") {
       if (!requireMaster(request, env)) return errorResponse(401, "Master key required", true);
+      const { allowed } = await checkRateLimit(env.EMAIL_KV, "admin");
+      if (!allowed) return errorResponse(429, "Rate limit exceeded.", true);
       const key = generateApiKey();
       const now = new Date().toISOString();
       const ttl = parseInt(url.searchParams.get("ttl") || "") || null;
@@ -192,7 +216,12 @@ export default {
       const keys: { key: string; name: string; created: string; expires_at: string | null; last_used: string | null }[] = [];
       for (const item of listed.keys) {
         const raw = await env.EMAIL_KV.get(item.name).catch(() => null);
-        const meta: KeyMeta | null = raw ? JSON.parse(raw) : null;
+        let meta: KeyMeta | null = null;
+        try {
+          meta = raw ? JSON.parse(raw) : null;
+        } catch {
+          meta = null;
+        }
         const short = item.name.replace("apikey_", "");
         keys.push({ key: short.slice(0, 12) + "...", name: meta?.name ?? "", created: meta?.created ?? "", expires_at: meta?.expires_at ?? null, last_used: meta?.last_used ?? null });
       }

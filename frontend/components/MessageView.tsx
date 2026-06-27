@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,31 +27,29 @@ export function MessageView({ message, onClose }: MessageViewProps) {
     message.body_html ? "html" : "text"
   );
 
-  const handleCopySender = async () => {
-    await navigator.clipboard.writeText(message.sender);
-    toast.success("Sender copied!", { description: message.sender });
+  const safeCopy = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label} copied!`);
+    } catch {
+      toast.error("Failed to copy", { description: "Clipboard access denied." });
+    }
   };
 
-  const handleCopyRecipient = async () => {
-    await navigator.clipboard.writeText(message.recipient);
-    toast.success("Recipient copied!", { description: message.recipient });
-  };
-
-  const handleCopySubject = async () => {
-    await navigator.clipboard.writeText(message.subject);
-    toast.success("Subject copied!", { description: message.subject });
-  };
+  const handleCopySender = () => safeCopy(message.sender, "Sender");
+  const handleCopyRecipient = () => safeCopy(message.recipient, "Recipient");
+  const handleCopySubject = () => safeCopy(message.subject, "Subject");
 
   const handleCopyBody = async () => {
-    const text = viewMode === "html" ? message.body_text || "" : message.body_text || "";
-    await navigator.clipboard.writeText(text);
-    toast.success("Body copied!");
+    const text = viewMode === "html"
+      ? DOMPurify.sanitize(message.body_html || "", { ALLOWED_TAGS: [] })
+      : message.body_text || "";
+    await safeCopy(text, "Body");
   };
 
   const handleCopyAll = async () => {
     const all = `From: ${message.sender}\nTo: ${message.recipient}\nSubject: ${message.subject}\n\n${message.body_text || ""}`;
-    await navigator.clipboard.writeText(all);
-    toast.success("Full message copied!");
+    await safeCopy(all, "Full message");
   };
 
   return (
@@ -183,14 +182,31 @@ export function MessageView({ message, onClose }: MessageViewProps) {
   );
 }
 
+let hookRegistered = false;
+
 function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/on\w+="[^"]*"/gi, "")
-    .replace(/on\w+='[^']*'/gi, "")
-    .replace(/on\w+=\w+/gi, "")
-    .replace(/<base\b[^>]*>/gi, "")
-    .replace(/<link\b[^>]*>/gi, "")
-    .replace(/<meta\b[^>]*>/gi, "");
+  if (!hookRegistered && typeof window !== "undefined") {
+    DOMPurify.addHook("afterSanitizeAttributes", (node) => {
+      if (node.tagName === "A") {
+        node.setAttribute("target", "_blank");
+        node.setAttribute("rel", "noopener noreferrer");
+      }
+    });
+    hookRegistered = true;
+  }
+
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p", "br", "b", "i", "u", "em", "strong", "a", "img", "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "table", "thead", "tbody", "tr", "th", "td", "pre", "code", "blockquote",
+      "hr", "div", "span", "dl", "dt", "dd", "figure", "figcaption",
+    ],
+    ALLOWED_ATTR: [
+      "href", "src", "alt", "title", "width", "height", "class", "style",
+      "target", "rel", "colspan", "rowspan", "cellpadding", "cellspacing",
+      "border", "align", "valign", "bgcolor", "color", "face", "size",
+    ],
+    ALLOW_DATA_ATTR: false,
+    ADD_ATTR: ["target"],
+  });
 }

@@ -18,7 +18,3 @@ export function generateRandomAddress(): string {
   const suffix = Math.floor(Math.random() * 9000 + 1000);
   return `${adj}.${noun}${suffix}@${getDomain()}`;
 }
-
-export function extractLocalPart(email: string): string {
-  return email.split("@")[0] ?? "";
-}
