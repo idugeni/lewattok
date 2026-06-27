@@ -2,11 +2,10 @@
   "name": "aurelion",
   "private": true,
   "scripts": {
-    "postinstall": "cd frontend && npm install",
-    "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "start": "cd frontend && npm start",
-    "lint": "cd frontend && npm run lint"
+    "dev": "npm run dev",
+    "build": "npm run build",
+    "start": "npm start",
+    "lint": "npm run lint"
   },
   "dependencies": {
     "next": "^16.2.9",
