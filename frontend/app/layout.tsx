@@ -100,6 +100,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
+                // Theme detection (runs before paint)
                 var t = localStorage.getItem('aurelion-theme') || 'dark';
                 var c = document.documentElement.classList;
                 c.remove('light','dark');
@@ -108,6 +109,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 } else {
                   c.add(t);
                 }
+                // Force scroll to top on every page load/refresh
+                if ('scrollRestoration' in history) {
+                  history.scrollRestoration = 'manual';
+                }
+                window.scrollTo(0, 0);
               })();
             `,
           }}
