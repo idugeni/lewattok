@@ -63,6 +63,7 @@ export function InboxPage() {
       if (remaining <= 0) {
         setCountdown("Expired");
         clearInterval(interval);
+        toast.warning("Inbox has expired", { description: "Create a new one to continue receiving emails" });
         return;
       }
       const mins = Math.floor(remaining / 60000);
@@ -97,7 +98,9 @@ export function InboxPage() {
       });
       setLastFetched(new Date());
     } catch {
-      // Silent fail
+      if (showToast) {
+        toast.error("Failed to refresh messages");
+      }
     } finally {
       setIsRefreshing(false);
     }
@@ -184,6 +187,7 @@ export function InboxPage() {
     setSelectedMessage(null);
     setCountdown("");
     setLastFetched(null);
+    toast.info("Ready for a new inbox");
   }, []);
 
   if (!mounted) {
