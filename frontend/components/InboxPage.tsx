@@ -48,7 +48,11 @@ export function InboxPage() {
         if (Date.now() < data.expiresAt) {
           setInbox(data);
         } else {
+          // Expired inbox — clear silently, show empty state
           localStorage.removeItem(STORAGE_KEY);
+          toast.info("Previous inbox expired", {
+            description: "Create a new one to continue",
+          });
         }
       } catch {
         localStorage.removeItem(STORAGE_KEY);
@@ -79,8 +83,24 @@ export function InboxPage() {
     if (!inbox) return;
     setIsRefreshing(true);
     try {
-      const res = await fetch(`/api/messages?recipient=${encodeURIComponent(inbox.address)}`);
-      if (!res.ok) return;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+      const res = await fetch(
+        `/api/messages?recipient=${encodeURIComponent(inbox.address)}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        if (showToast) {
+          toast.error("Failed to load messages", {
+            description: `Server returned ${res.status}. Try refreshing.`,
+          });
+        }
+        return;
+      }
+
       const data = await res.json();
       const newMessages: EmailMessage[] = (data.messages ?? []).map(
         (m: EmailMessage) => ({ ...m, isNew: true })
@@ -91,16 +111,21 @@ export function InboxPage() {
           const fresh = newMessages.filter((m) => !existingIds.has(m.id));
           if (fresh.length > 0) {
             toast.success(`${fresh.length} new message${fresh.length > 1 ? "s" : ""} received`);
-          } else if (showToast) {
+          } else {
             toast.info("No new messages");
           }
         }
         return newMessages;
       });
       setLastFetched(new Date());
-    } catch {
+    } catch (err) {
       if (showToast) {
-        toast.error("Failed to refresh messages");
+        const isTimeout = err instanceof DOMException && err.name === "AbortError";
+        toast.error(isTimeout ? "Request timed out" : "Failed to refresh messages", {
+          description: isTimeout
+            ? "Server took too long to respond. Try again."
+            : "Check your connection and try again.",
+        });
       }
     } finally {
       setIsRefreshing(false);
@@ -133,11 +158,15 @@ export function InboxPage() {
 
       // Try to create on worker side too
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10_000);
         await fetch("/api/inbox", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: username || undefined }),
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
       } catch {
         // Worker not available, continue with local
       }

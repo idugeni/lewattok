@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true,
+
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
 
   async headers() {
     return [
@@ -38,7 +43,7 @@ const nextConfig = {
           },
           {
             key: "X-DNS-Prefetch-Control",
-            value: "off",
+            value: "on",
           },
           {
             key: "Origin-Agent-Cluster",
@@ -53,7 +58,7 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https:",
               "frame-src 'self' blob:",
-              "connect-src 'self' https://aurelion-email-worker.officialelsa21516.workers.dev https://challenges.cloudflare.com",
+              "connect-src 'self' https://aurelion.web.id https://aurelion-email-worker.officialelsa21516.workers.dev https://challenges.cloudflare.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

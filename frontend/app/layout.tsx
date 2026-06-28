@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     "developer tools",
     "QA testing",
   ],
-  metadataBase: process.env.NEXT_PUBLIC_APP_URL
-    ? new URL(process.env.NEXT_PUBLIC_APP_URL)
-    : undefined,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://aurelion.web.id"
+  ),
   openGraph: {
     type: "website",
     siteName: "Aurelion",
