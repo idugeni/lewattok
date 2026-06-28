@@ -3,7 +3,7 @@ import globals from "globals";
 import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 
-export default [
+const config = [
   js.configs.recommended,
   {
     languageOptions: {
@@ -18,8 +18,8 @@ export default [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
+        ecmaVersion: "latest" as const,
+        sourceType: "module" as const,
         ecmaFeatures: { jsx: true },
       },
     },
@@ -36,4 +36,6 @@ export default [
   {
     ignores: [".next/", "node_modules/", "dist/"],
   },
-];
+] as const;
+
+export default config;
