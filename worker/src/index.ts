@@ -29,10 +29,75 @@ const MAX_MESSAGE_COUNT = 50;
 const MIME_MAX_DEPTH = 3;
 const LAST_USED_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
 
-// Default allowed origins
-const DEFAULT_ORIGINS = "https://aurelion.web.id,https://aurelion.vercel.app";
+// ─── Structured Logging for wrangler tail ───────────────────────────────────
+
+const LOG_VERSION = "1";
+
+function maskIP(ip: string): string {
+  // Keep first 2 octets for geo identification, mask rest for privacy
+  const parts = ip.split(".");
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.*.*`;
+  // IPv6: keep first 4 groups
+  const v6parts = ip.split(":");
+  if (v6parts.length >= 4) return v6parts.slice(0, 4).join(":") + "::*";
+  return ip;
+}
+
+function log(level: "info" | "warn" | "error", event: string, data: Record<string, unknown>) {
+  const entry = {
+    v: LOG_VERSION,
+    ts: new Date().toISOString(),
+    level,
+    event,
+    ...data,
+  };
+  if (level === "error") console.error(JSON.stringify(entry));
+  else if (level === "warn") console.warn(JSON.stringify(entry));
+  else console.log(JSON.stringify(entry));
+}
+
+function logRequest(
+  method: string,
+  path: string,
+  ip: string,
+  status: number,
+  durationMs: number,
+  extra?: Record<string, unknown>
+) {
+  log("info", "request", {
+    method,
+    path,
+    ip: maskIP(ip),
+    status,
+    dur_ms: durationMs,
+    ...extra,
+  });
+}
+
+function logSecurity(event: string, ip: string, detail: string, extra?: Record<string, unknown>) {
+  log("warn", event, {
+    ip: maskIP(ip),
+    detail,
+    ...extra,
+  });
+}
+
+function logRateLimit(ip: string, action: string, remaining: number, limit: number) {
+  // Only log when approaching or at limit
+  if (remaining <= 2) {
+    log("warn", "rate_limit_warn", {
+      ip: maskIP(ip),
+      action,
+      remaining,
+      limit,
+    });
+  }
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Default allowed origins
+const DEFAULT_ORIGINS = "https://aurelion.web.id,https://aurelion.vercel.app";
 
 function getAllowedOrigins(env: Env): string[] {
   const raw = env.ALLOWED_ORIGINS || DEFAULT_ORIGINS;
@@ -261,7 +326,7 @@ export default {
 
     // Limit total email size
     if (raw.length > 2 * 1024 * 1024) {
-      console.warn("Email too large, discarding");
+      log("warn", "email_oversized", { size: raw.length, from: message.from, to: message.to });
       return;
     }
 
@@ -281,6 +346,7 @@ export default {
     const subject = message.headers.get("subject")?.trim() || "(no subject)";
 
     if (!recipient || !sender) {
+      log("warn", "email_invalid", { from: message.from, to: message.to });
       return;
     }
 
@@ -311,8 +377,13 @@ export default {
       expirationTtl: INBOX_TTL,
     });
 
-    // Invalidate cache for this recipient
-    // (Cache API is not available in email handler, but TTL handles it)
+    log("info", "email_received", {
+      recipient,
+      sender: maskIP(sender),
+      subject_len: subject.length,
+      body_text_len: parsed.text.length,
+      inbox_size: messages.length,
+    });
   },
 
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -321,10 +392,12 @@ export default {
     const method = request.method;
     const ip = request.headers.get("CF-Connecting-IP") || "unknown";
     const corsOrigin = getCorsOrigin(request, env);
+    const requestStart = Date.now();
 
     // ─── OPTIONS (Preflight) ─────────────────────────────────────────────
     if (method === "OPTIONS") {
       if (!corsOrigin) {
+        logSecurity("cors_blocked", ip, "Preflight from disallowed origin", { origin: request.headers.get("Origin") });
         return new Response(null, { status: 403 });
       }
       return new Response(null, {
@@ -341,15 +414,20 @@ export default {
     }
 
     // ─── CORS Check for Non-GET Methods ──────────────────────────────────
-    // GET requests from browser need CORS for fetch(), so we allow them
-    // But only if origin matches
     if (method !== "GET" && !corsOrigin && request.headers.get("Origin")) {
+      logSecurity("cors_blocked", ip, "Non-GET from disallowed origin", {
+        method,
+        path,
+        origin: request.headers.get("Origin"),
+      });
       return errorResponse(403, "Forbidden: origin not allowed", null);
     }
 
     // ─── Global Rate Limit ───────────────────────────────────────────────
     const globalRL = await enforceRateLimit(env.EMAIL_KV, ip, "global", RL_GLOBAL);
+    logRateLimit(ip, "global", globalRL.headers["X-RateLimit-Remaining"] ? parseInt(globalRL.headers["X-RateLimit-Remaining"]) : 100, RL_GLOBAL.limit);
     if (!globalRL.allowed) {
+      logSecurity("rate_limit_hit", ip, "Global rate limit exceeded", { path, method });
       return json(
         { error: "Rate limit exceeded. Too many requests." },
         429,
@@ -363,56 +441,84 @@ export default {
     // GET /messages or /api/messages
     if ((path === "/messages" || path === "/api/messages") && method === "GET") {
       const fetchRL = await enforceRateLimit(env.EMAIL_KV, ip, "fetch", RL_FETCH);
+      logRateLimit(ip, "fetch", fetchRL.headers["X-RateLimit-Remaining"] ? parseInt(fetchRL.headers["X-RateLimit-Remaining"]) : 30, RL_FETCH.limit);
       if (!fetchRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "Fetch rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, fetchRL.headers);
       }
-      return handleGetMessages(url, env, corsOrigin, fetchRL.headers);
+      const res = await handleGetMessages(url, env, corsOrigin, fetchRL.headers);
+      logRequest(method, path, ip, res.status, Date.now() - requestStart);
+      return res;
     }
 
     // DELETE /messages or /api/messages
     if ((path === "/messages" || path === "/api/messages") && method === "DELETE") {
       const deleteRL = await enforceRateLimit(env.EMAIL_KV, ip, "delete", RL_DELETE);
+      logRateLimit(ip, "delete", deleteRL.headers["X-RateLimit-Remaining"] ? parseInt(deleteRL.headers["X-RateLimit-Remaining"]) : 10, RL_DELETE.limit);
       if (!deleteRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "Delete rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, deleteRL.headers);
       }
-      return handleDeleteInbox(url, env, corsOrigin, deleteRL.headers);
+      const res = await handleDeleteInbox(url, env, corsOrigin, deleteRL.headers);
+      logRequest(method, path, ip, res.status, Date.now() - requestStart);
+      return res;
     }
 
     // POST /api/inbox — create inbox
     if (path === "/api/inbox" && method === "POST") {
       const createRL = await enforceRateLimit(env.EMAIL_KV, ip, "create", RL_INBOX_CREATE);
+      logRateLimit(ip, "create", createRL.headers["X-RateLimit-Remaining"] ? parseInt(createRL.headers["X-RateLimit-Remaining"]) : 5, RL_INBOX_CREATE.limit);
       if (!createRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "Inbox create rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded. Max 5 inboxes per 10 minutes." }, 429, corsOrigin, createRL.headers);
       }
-      return handleCreateInbox(request, env, corsOrigin, createRL.headers);
+      const res = await handleCreateInbox(request, env, corsOrigin, createRL.headers);
+      logRequest(method, path, ip, res.status, Date.now() - requestStart);
+      return res;
     }
 
     // DELETE /api/inbox
     if (path === "/api/inbox" && method === "DELETE") {
       const deleteRL = await enforceRateLimit(env.EMAIL_KV, ip, "delete", RL_DELETE);
+      logRateLimit(ip, "delete", deleteRL.headers["X-RateLimit-Remaining"] ? parseInt(deleteRL.headers["X-RateLimit-Remaining"]) : 10, RL_DELETE.limit);
       if (!deleteRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "Delete rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, deleteRL.headers);
       }
-      return handleDeleteInbox(url, env, corsOrigin, deleteRL.headers);
+      const res = await handleDeleteInbox(url, env, corsOrigin, deleteRL.headers);
+      logRequest(method, path, ip, res.status, Date.now() - requestStart);
+      return res;
     }
 
     // ─── V1 API Endpoints ────────────────────────────────────────────────
 
     // POST /api/v1/inboxes or /api/v1/generate
     if ((path === "/api/v1/generate" || path === "/api/v1/inboxes") && method === "POST") {
-      if (!(await requireAuth(request, env))) return errorResponse(401, "Invalid or missing API key", corsOrigin);
+      if (!(await requireAuth(request, env))) {
+        logSecurity("auth_failed", ip, "Invalid or missing API key", { path });
+        return errorResponse(401, "Invalid or missing API key", corsOrigin);
+      }
       const createRL = await enforceRateLimit(env.EMAIL_KV, ip, "create", RL_INBOX_CREATE);
+      logRateLimit(ip, "create", createRL.headers["X-RateLimit-Remaining"] ? parseInt(createRL.headers["X-RateLimit-Remaining"]) : 5, RL_INBOX_CREATE.limit);
       if (!createRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "V1 create rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, createRL.headers);
       }
-      return handleCreateInbox(request, env, corsOrigin, createRL.headers);
+      const res = await handleCreateInbox(request, env, corsOrigin, createRL.headers);
+      logRequest(method, path, ip, res.status, Date.now() - requestStart);
+      return res;
     }
 
     // DELETE /api/v1/inboxes/{email}
     if (path.startsWith("/api/v1/inboxes/") && method === "DELETE") {
-      if (!(await requireAuth(request, env))) return errorResponse(401, "Invalid or missing API key", corsOrigin);
+      if (!(await requireAuth(request, env))) {
+        logSecurity("auth_failed", ip, "Invalid or missing API key", { path });
+        return errorResponse(401, "Invalid or missing API key", corsOrigin);
+      }
       const deleteRL = await enforceRateLimit(env.EMAIL_KV, ip, "delete", RL_DELETE);
+      logRateLimit(ip, "delete", deleteRL.headers["X-RateLimit-Remaining"] ? parseInt(deleteRL.headers["X-RateLimit-Remaining"]) : 10, RL_DELETE.limit);
       if (!deleteRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "V1 delete rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, deleteRL.headers);
       }
       const parts = path.split("/");
@@ -421,14 +527,20 @@ export default {
       const err = validateRecipient(email);
       if (err) return errorResponse(400, err, corsOrigin);
       await env.EMAIL_KV.delete(email);
+      logRequest(method, path, ip, 200, Date.now() - requestStart, { deleted: email });
       return json({ deleted: email }, 200, corsOrigin, deleteRL.headers);
     }
 
     // GET /api/v1/messages or /api/v1/inboxes/{email}/messages
     if ((path === "/api/v1/messages" || path.startsWith("/api/v1/inboxes/")) && method === "GET") {
-      if (!(await requireAuth(request, env))) return errorResponse(401, "Invalid or missing API key", corsOrigin);
+      if (!(await requireAuth(request, env))) {
+        logSecurity("auth_failed", ip, "Invalid or missing API key", { path });
+        return errorResponse(401, "Invalid or missing API key", corsOrigin);
+      }
       const fetchRL = await enforceRateLimit(env.EMAIL_KV, ip, "fetch", RL_FETCH);
+      logRateLimit(ip, "fetch", fetchRL.headers["X-RateLimit-Remaining"] ? parseInt(fetchRL.headers["X-RateLimit-Remaining"]) : 30, RL_FETCH.limit);
       if (!fetchRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "V1 fetch rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, fetchRL.headers);
       }
 
@@ -449,19 +561,26 @@ export default {
         const sinceDate = new Date(since).getTime();
         if (isNaN(sinceDate)) return errorResponse(400, "Invalid 'since' parameter", corsOrigin);
         const filtered = messages.filter((m) => new Date(m.created_at).getTime() > sinceDate);
+        logRequest(method, path, ip, 200, Date.now() - requestStart, { count: filtered.length });
         return json({ messages: filtered }, 200, corsOrigin, fetchRL.headers);
       }
 
       messages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      return json({ messages: messages.slice(0, MAX_MESSAGE_COUNT) }, 200, corsOrigin, fetchRL.headers);
+      const sliced = messages.slice(0, MAX_MESSAGE_COUNT);
+      logRequest(method, path, ip, 200, Date.now() - requestStart, { count: sliced.length });
+      return json({ messages: sliced }, 200, corsOrigin, fetchRL.headers);
     }
 
     // ─── Admin: API Key Management ───────────────────────────────────────
 
     if (path === "/api/v1/admin/keys" && method === "POST") {
-      if (!requireMaster(request, env)) return errorResponse(401, "Unauthorized", corsOrigin);
+      if (!requireMaster(request, env)) {
+        logSecurity("auth_failed", ip, "Invalid master API key", { path });
+        return errorResponse(401, "Unauthorized", corsOrigin);
+      }
       const adminRL = await enforceRateLimit(env.EMAIL_KV, ip, "admin", { limit: 10, windowSec: 60 });
       if (!adminRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "Admin rate limit exceeded", { path });
         return json({ error: "Rate limit exceeded" }, 429, corsOrigin, adminRL.headers);
       }
       const key = generateApiKey();
@@ -471,11 +590,16 @@ export default {
       if (ttl) meta.expires_at = new Date(Date.now() + ttl * 1000).toISOString();
       const kvOpts = ttl ? { expirationTtl: ttl } : undefined;
       await env.EMAIL_KV.put("apikey_" + key, JSON.stringify(meta), kvOpts);
+      log("info", "admin_key_created", { ip: maskIP(ip), ttl: ttl ?? "none" });
+      logRequest(method, path, ip, 201, Date.now() - requestStart);
       return json({ key, ...meta }, 201, corsOrigin);
     }
 
     if (path === "/api/v1/admin/keys" && method === "GET") {
-      if (!requireMaster(request, env)) return errorResponse(401, "Unauthorized", corsOrigin);
+      if (!requireMaster(request, env)) {
+        logSecurity("auth_failed", ip, "Invalid master API key", { path });
+        return errorResponse(401, "Unauthorized", corsOrigin);
+      }
       const listed = await env.EMAIL_KV.list({ prefix: "apikey_" });
       const keys: { key: string; name: string; created: string; expires_at: string | null; last_used: string | null }[] = [];
       for (const item of listed.keys) {
@@ -495,17 +619,26 @@ export default {
           last_used: meta?.last_used ?? null,
         });
       }
+      logRequest(method, path, ip, 200, Date.now() - requestStart, { key_count: keys.length });
       return json({ keys }, 200, corsOrigin);
     }
 
     if (path === "/api/v1/admin/keys" && method === "DELETE") {
-      if (!requireMaster(request, env)) return errorResponse(401, "Unauthorized", corsOrigin);
+      if (!requireMaster(request, env)) {
+        logSecurity("auth_failed", ip, "Invalid master API key", { path });
+        return errorResponse(401, "Unauthorized", corsOrigin);
+      }
       const body = await request.json().catch(() => null) as { key?: string } | null;
       const target = body?.key;
       if (!target || typeof target !== "string") return errorResponse(400, "Missing 'key' in request body", corsOrigin);
       // Validate key format to prevent injection
-      if (!/^al_[a-f0-9]{48}$/.test(target)) return errorResponse(400, "Invalid key format", corsOrigin);
+      if (!/^al_[a-f0-9]{48}$/.test(target)) {
+        logSecurity("validation_failed", ip, "Invalid key format in admin delete", { path });
+        return errorResponse(400, "Invalid key format", corsOrigin);
+      }
       await env.EMAIL_KV.delete("apikey_" + target);
+      log("info", "admin_key_revoked", { ip: maskIP(ip), key_prefix: target.slice(0, 12) });
+      logRequest(method, path, ip, 200, Date.now() - requestStart);
       return json({ revoked: target }, 200, corsOrigin);
     }
 
@@ -514,6 +647,7 @@ export default {
     if (path === "/api/v1/public/key" && method === "POST") {
       const keygenRL = await enforceRateLimit(env.EMAIL_KV, ip, "keygen", { limit: 1, windowSec: 3600 });
       if (!keygenRL.allowed) {
+        logSecurity("rate_limit_hit", ip, "Key generation rate limit exceeded", { path });
         return json({ error: "Rate limited. One key per hour." }, 429, corsOrigin, keygenRL.headers);
       }
       const key = generateApiKey();
@@ -521,11 +655,14 @@ export default {
       const expiresAt = new Date(Date.now() + PUBLIC_KEY_TTL * 1000).toISOString();
       const meta = { name: "", source: "public", created: now, expires_at: expiresAt, last_used: null };
       await env.EMAIL_KV.put("apikey_" + key, JSON.stringify(meta), { expirationTtl: PUBLIC_KEY_TTL });
+      log("info", "public_key_generated", { ip: maskIP(ip) });
+      logRequest(method, path, ip, 201, Date.now() - requestStart);
       return json({ key, ...meta }, 201, corsOrigin, keygenRL.headers);
     }
 
     // ─── Health / Fallback ───────────────────────────────────────────────
 
+    logRequest(method, path, ip, 200, Date.now() - requestStart);
     return json({ status: "ok", version: "2.0.0" }, 200, corsOrigin);
   },
 };
