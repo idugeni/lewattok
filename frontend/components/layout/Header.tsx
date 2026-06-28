@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { STORAGE_KEY } from "@/lib/constants";
 import {
   Sheet,
   SheetContent,
@@ -45,6 +46,33 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  // Countdown timer: read inbox expiresAt from localStorage
+  useEffect(() => {
+    const tick = () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          setRemaining(null);
+          return;
+        }
+        const data = JSON.parse(raw);
+        const expiresAt = data?.expiresAt;
+        if (!expiresAt || typeof expiresAt !== "number") {
+          setRemaining(null);
+          return;
+        }
+        const diff = expiresAt - Date.now();
+        setRemaining(diff > 0 ? diff : 0);
+      } catch {
+        setRemaining(null);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -60,6 +88,14 @@ export function Header() {
   };
 
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+
+  const formatRemaining = useCallback((ms: number): string => {
+    if (ms <= 0) return "expired";
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}m ${s.toString().padStart(2, "0")}s`;
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -104,11 +140,30 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          {/* TTL badge */}
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-            <span className="size-1.5 rounded-full bg-mint animate-pulse" />
-            15m ttl
-          </span>
+          {/* TTL countdown badge */}
+          {remaining !== null && remaining > 0 ? (
+            <span className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono bg-muted/50 px-2 py-1 rounded-full transition-colors duration-500 ${
+              remaining < 120000
+                ? "text-red-400"
+                : remaining < 300000
+                ? "text-amber-400"
+                : "text-muted-foreground"
+            }`}>
+              <span className={`size-1.5 rounded-full animate-pulse ${
+                remaining < 120000
+                  ? "bg-red-400"
+                  : remaining < 300000
+                  ? "bg-amber-400"
+                  : "bg-mint"
+              }`} />
+              {formatRemaining(remaining)}
+            </span>
+          ) : (
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+              <span className="size-1.5 rounded-full bg-mint animate-pulse" />
+              15m ttl
+            </span>
+          )}
 
           {/* Theme toggle */}
           {mounted && (
