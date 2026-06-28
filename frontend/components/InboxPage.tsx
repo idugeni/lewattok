@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Inbox } from "@/components/Inbox";
 import { MessageView } from "@/components/MessageView";
 import { GenerateKeyButton } from "@/components/GenerateKeyButton";
@@ -201,47 +202,60 @@ export function InboxPage() {
   // Empty state - no inbox yet
   if (!inbox) {
     return (
-      <section className="flex-1 flex items-center justify-center px-4 py-16">
-        <div className="max-w-md w-full text-center space-y-8">
-          {/* Icon */}
-          <div className="mx-auto size-20 rounded-3xl bg-gradient-to-br from-aurora-indigo/15 to-aurora-violet/15 border border-aurora-indigo/10 flex items-center justify-center">
-            <InboxIcon className="size-9 text-aurora-indigo" />
+      <section className="flex-1 flex items-center justify-center px-4 py-16 relative overflow-hidden">
+        {/* Aurora background glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-br from-aurora-indigo/8 via-aurora-violet/5 to-transparent rounded-full blur-3xl animate-aurora-breathe" />
+        </div>
+
+        <div className="max-w-lg w-full relative z-10 animate-fade-up">
+          {/* Glassmorphic card */}
+          <div className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-xl shadow-2xl shadow-primary/5 p-8 sm:p-10">
+            {/* Icon */}
+            <div className="mx-auto size-20 rounded-2xl bg-gradient-to-br from-aurora-indigo/15 to-aurora-violet/15 border border-aurora-indigo/10 flex items-center justify-center mb-8">
+              <InboxIcon className="size-9 text-aurora-indigo" />
+            </div>
+
+            {/* Heading */}
+            <div className="text-center space-y-3 mb-8">
+              <h1
+                className="text-2xl sm:text-3xl font-bold tracking-tight"
+                style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
+              >
+                Your temporary inbox
+              </h1>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                Choose a custom username or generate a random disposable email address. Auto-deletes after the countdown.
+              </p>
+            </div>
+
+            {/* Username input */}
+            <UsernameInput
+              onSubmit={(username) => handleCreateInbox(username)}
+              onRandom={() => handleCreateInbox()}
+              isLoading={isLoading}
+            />
+
+            {/* Generate API key */}
+            <div className="mt-6">
+              <GenerateKeyButton />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
-              style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
-            >
-              Your temporary inbox
-            </h1>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              Choose a custom username or generate a random disposable email address. Auto-deletes after the countdown.
-            </p>
-          </div>
-
-          <UsernameInput
-            onSubmit={(username) => handleCreateInbox(username)}
-            onRandom={() => handleCreateInbox()}
-            isLoading={isLoading}
-          />
-
-          <GenerateKeyButton />
-
-          {/* Trust signals */}
-          <div className="flex items-center justify-center gap-6 pt-4">
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          {/* Trust signals as badges */}
+          <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
+            <Badge variant="secondary" className="gap-1.5 px-3 py-1 bg-card/60 backdrop-blur-sm border border-border/30">
               <Shield className="size-3 text-mint" />
-              No tracking
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="text-xs">No tracking</span>
+            </Badge>
+            <Badge variant="secondary" className="gap-1.5 px-3 py-1 bg-card/60 backdrop-blur-sm border border-border/30">
               <Clock className="size-3 text-aurora-indigo" />
-              Auto-deletes
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="text-xs">Auto-deletes</span>
+            </Badge>
+            <Badge variant="secondary" className="gap-1.5 px-3 py-1 bg-card/60 backdrop-blur-sm border border-border/30">
               <Mail className="size-3 text-ember" />
-              No registration
-            </span>
+              <span className="text-xs">No registration</span>
+            </Badge>
           </div>
         </div>
       </section>
