@@ -49,7 +49,7 @@ export default function UsernameInput({
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value.toLowerCase().replace(/[^a-z0-9.\-]/g, "");
+      const value = e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, "");
       setUsername(value);
       if (value) {
         setError(validate(value));

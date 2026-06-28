@@ -10,7 +10,6 @@ import {
   Clock,
   FileCode,
   Code,
-  ExternalLink,
 } from "lucide-react";
 import DOMPurify from "dompurify";
 

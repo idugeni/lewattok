@@ -26,7 +26,6 @@ export async function GET(
 
     const response = await fetch(`${WORKER_URL}/messages?${params}`);
     if (!response.ok) {
-      const body = await response.text();
       return NextResponse.json({ error: "Failed to fetch messages" }, { status: response.status });
     }
 
@@ -58,7 +57,6 @@ export async function DELETE(
     const params = new URLSearchParams({ recipient });
     const response = await fetch(`${WORKER_URL}/messages?${params}`, { method: "DELETE" });
     if (!response.ok) {
-      const body = await response.text();
       return NextResponse.json({ error: "Failed to delete inbox" }, { status: response.status });
     }
 

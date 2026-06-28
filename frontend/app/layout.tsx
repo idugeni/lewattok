@@ -54,12 +54,26 @@ export const metadata: Metadata = {
     title: "Aurelion — Temporary Email That Vanishes",
     description:
       "Generate disposable email addresses that vanish automatically. No signup, no spam, no tracking.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "Aurelion — Temporary Email That Vanishes",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Aurelion — Temporary Email That Vanishes",
     description:
       "Generate disposable email addresses that vanish automatically.",
+    images: ["/opengraph-image"],
+  },
+  icons: {
+    icon: "/icon",
+    shortcut: "/icon",
+    apple: "/apple-icon",
   },
   robots: { index: true, follow: true },
 };

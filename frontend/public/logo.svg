@@ -1,0 +1,13 @@
+<svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aurora" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818CF8" />
+      <stop offset="50%" stop-color="#A78BFA" />
+      <stop offset="100%" stop-color="#C4B5FD" />
+    </linearGradient>
+  </defs>
+  <path
+    d="M12 2L4 20h3.5l2-4.5h8l2 4.5H20L12 2zm-1.8 12L12 7l1.8 7h-3.6z"
+    fill="url(#aurora)"
+  />
+</svg>

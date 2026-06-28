@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateRandomAddress, buildAddress, validateUsername, getDomain } from "@/lib/email";
 import type { GenerateEmailResponse } from "@/lib/types";
 
-const WORKER_URL = process.env.WORKER_URL || process.env.NEXT_PUBLIC_WORKER_URL;
 
 export async function GET(
   request: NextRequest

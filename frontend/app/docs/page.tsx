@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { CodeBlock } from "@/components/ui/code-block";
-import { Button } from "@/components/ui/button";
+
 import { GenerateKeyButton } from "@/components/GenerateKeyButton";
 import {
   Key,
@@ -10,7 +10,7 @@ import {
   Inbox,
   ArrowRight,
   Clock,
-  Shield,
+
   AlertTriangle,
   BookOpen,
   Zap,
