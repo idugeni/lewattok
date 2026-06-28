@@ -9,7 +9,7 @@ import { AuroraBackground } from "./AuroraCanvas";
 const TRUST_ITEMS = [
   { icon: Zap, label: "No signup" },
   { icon: Shield, label: "No tracking" },
-  { icon: Clock, label: "Auto-deletes in 15 min" },
+  { icon: Clock, label: "Auto-deletes" },
 ];
 
 export function Hero() {
@@ -70,7 +70,7 @@ export function Hero() {
           }`}
         >
           Generate a temporary inbox in one click. Receive emails in real-time.
-          Everything auto-deletes after 15 minutes — permanently.
+          Everything auto-deletes after the countdown — permanently.
         </p>
 
         {/* CTA */}

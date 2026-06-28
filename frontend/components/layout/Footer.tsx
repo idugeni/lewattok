@@ -27,7 +27,7 @@ export function Footer() {
               <span className="text-sm font-semibold tracking-tight">aurelion</span>
             </Link>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-48">
-              Disposable email that vanishes in 15 minutes. No signup, no tracking, no spam.
+              Disposable email that vanishes automatically. No signup, no tracking, no spam.
             </p>
           </div>
 

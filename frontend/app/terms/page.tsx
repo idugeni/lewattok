@@ -35,7 +35,7 @@ export default function TermsPage() {
 
           <Section icon={Mail} title="2. Description of Service">
             <p>
-              Aurelion provides temporary, disposable email addresses that automatically expire after 15 minutes. The Service is free to use and does not require account registration. Email addresses are randomly generated and are not intended for permanent communication.
+              Aurelion provides temporary, disposable email addresses that automatically expire after a short period. The Service is free to use and does not require account registration. Email addresses are randomly generated and are not intended for permanent communication.
             </p>
           </Section>
 
@@ -54,7 +54,7 @@ export default function TermsPage() {
 
           <Section icon={Clock} title="4. Data Retention & Expiry">
             <p>
-              All email addresses and associated messages are automatically and permanently deleted after 15 minutes. We do not maintain backups, archives, or recovery mechanisms for expired data. Once data is deleted, it cannot be recovered under any circumstances.
+              All email addresses and associated messages are automatically and permanently deleted after the countdown expires. We do not maintain backups, archives, or recovery mechanisms for expired data. Once data is deleted, it cannot be recovered under any circumstances.
             </p>
           </Section>
 

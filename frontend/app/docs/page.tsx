@@ -41,7 +41,7 @@ const ENDPOINTS = [
   {
     method: "DELETE",
     path: "/api/inbox",
-    description: "Delete an inbox from the server, freeing up the address and its messages before the 15-minute TTL.",
+    description: "Delete an inbox from the server, freeing up the address and its messages before the auto-expiry.",
     icon: Inbox,
     requiresAuth: false,
   },

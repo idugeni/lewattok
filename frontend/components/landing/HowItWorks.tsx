@@ -22,7 +22,7 @@ const STEPS = [
     number: "03",
     icon: Timer,
     title: "Vanish",
-    description: "After 15 minutes, the address and all messages are permanently deleted from the server. No recovery.",
+    description: "After the countdown expires, the address and all messages are permanently deleted from the server. No recovery.",
     accent: "ember",
   },
 ];

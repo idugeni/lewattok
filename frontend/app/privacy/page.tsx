@@ -32,7 +32,7 @@ export default function PrivacyPage() {
             <p className="text-sm font-semibold">Privacy by design</p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Aurelion is built with privacy as a core principle. We collect the minimum data necessary to provide the service, and all data is automatically and permanently deleted after 15 minutes.
+            Aurelion is built with privacy as a core principle. We collect the minimum data necessary to provide the service, and all data is automatically and permanently deleted after the countdown expires.
           </p>
         </div>
 
@@ -44,14 +44,14 @@ export default function PrivacyPage() {
             </p>
             <p>What we do process temporarily:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li><strong className="text-foreground">Email content</strong> — Messages received by temporary addresses are stored in Cloudflare KV with a 15-minute TTL</li>
+              <li><strong className="text-foreground">Email content</strong> — Messages received by temporary addresses are stored in Cloudflare KV with an auto-expiring TTL</li>
               <li><strong className="text-foreground">API keys</strong> — Generated for programmatic access, stored in Cloudflare KV</li>
             </ul>
           </Section>
 
           <Section icon={Database} title="2. Data Storage & Retention">
             <p>
-              All data is stored in Cloudflare Workers KV, a globally distributed key-value store. Every piece of data — including email addresses, messages, and API keys — has a maximum Time-To-Live (TTL) of 15 minutes. After expiry, data is <strong className="text-foreground">permanently and irreversibly deleted</strong> from all servers.
+              All data is stored in Cloudflare Workers KV, a globally distributed key-value store. Every piece of data — including email addresses, messages, and API keys — has an automatic Time-To-Live (TTL). After expiry, data is <strong className="text-foreground">permanently and irreversibly deleted</strong> from all servers.
             </p>
             <p>We do not maintain backups, logs, or archives of user data.</p>
           </Section>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
           <Section icon={Globe} title="4. Third-Party Services">
             <p>We use the following infrastructure:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li><strong className="text-foreground">Cloudflare Workers & KV</strong> — Application hosting and data storage (with automatic 15-minute TTL expiry)</li>
+              <li><strong className="text-foreground">Cloudflare Workers & KV</strong> — Application hosting and data storage (with automatic TTL expiry)</li>
             </ul>
             <p>No data is shared with advertising networks, data brokers, or analytics providers.</p>
           </Section>
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section icon={UserCheck} title="6. Your Rights">
-            <p>Since we collect no personal data and all data auto-expires in 15 minutes:</p>
+            <p>Since we collect no personal data and all data auto-expires:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
               <li>There is no personal data to request, modify, or delete</li>
               <li>No data portability request is needed — your data is already ephemeral</li>

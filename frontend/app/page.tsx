@@ -7,13 +7,13 @@ import { FAQ } from "@/components/landing/FAQ";
 import { CTA } from "@/components/landing/CTA";
 
 export const metadata: Metadata = {
-  title: "Temporary Email That Vanishes in 15 Minutes",
+  title: "Temporary Email That Vanishes Automatically",
   description:
-    "Generate disposable email addresses that vanish in 15 minutes. No sign-up, no spam, no tracking. Perfect for developers, QA testing, and privacy.",
+    "Generate disposable email addresses that vanish automatically. No sign-up, no spam, no tracking. Perfect for developers, QA testing, and privacy.",
   openGraph: {
     title: "Aurelion — Temporary Email That Vanishes",
     description:
-      "Generate disposable email addresses that vanish in 15 minutes. No sign-up, no spam, no tracking.",
+      "Generate disposable email addresses that vanish automatically. No sign-up, no spam, no tracking.",
   },
 };
 

@@ -158,12 +158,7 @@ export function Header() {
               }`} />
               {formatRemaining(remaining)}
             </span>
-          ) : (
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-              <span className="size-1.5 rounded-full bg-mint animate-pulse" />
-              15m ttl
-            </span>
-          )}
+          ) : null}
 
           {/* Theme toggle */}
           {mounted && (
@@ -224,7 +219,7 @@ export function Header() {
               <div className="mt-auto p-4 border-t">
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted-foreground">
                   <span className="size-1.5 rounded-full bg-mint animate-pulse" />
-                  Messages auto-expire in 15 minutes
+                  Messages auto-expire automatically
                 </span>
               </div>
             </SheetContent>

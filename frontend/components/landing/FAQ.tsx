@@ -10,7 +10,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "How long do emails last?",
-    a: "All emails and the address itself are permanently deleted after 15 minutes. The countdown starts the moment your inbox is created.",
+    a: "All emails and the address itself are permanently deleted after the countdown expires. The countdown starts the moment your inbox is created.",
   },
   {
     q: "Can I use it for verification codes?",
@@ -22,7 +22,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is my data private?",
-    a: "Yes. We don't log IPs, use cookies, or store any personal data. Messages are held in Cloudflare KV with a 15-minute TTL and auto-deleted permanently after expiry.",
+    a: "Yes. We don't log IPs, use cookies, or store any personal data. Messages are held in Cloudflare KV with auto-expiry and deleted permanently after the countdown ends.",
   },
   {
     q: "Can I recover deleted messages?",

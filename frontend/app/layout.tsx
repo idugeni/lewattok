@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     default: "Aurelion — Temporary Email That Vanishes",
   },
   description:
-    "Generate disposable email addresses that vanish in 15 minutes. No signup, no spam, no tracking. Perfect for developers, QA testing, and privacy.",
+    "Generate disposable email addresses that vanish automatically. No signup, no spam, no tracking. Perfect for developers, QA testing, and privacy.",
   keywords: [
     "temporary email",
     "disposable email",
@@ -53,13 +53,13 @@ export const metadata: Metadata = {
     siteName: "Aurelion",
     title: "Aurelion — Temporary Email That Vanishes",
     description:
-      "Generate disposable email addresses that vanish in 15 minutes. No signup, no spam, no tracking.",
+      "Generate disposable email addresses that vanish automatically. No signup, no spam, no tracking.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Aurelion — Temporary Email That Vanishes",
     description:
-      "Generate disposable email addresses that vanish in 15 minutes.",
+      "Generate disposable email addresses that vanish automatically.",
   },
   robots: { index: true, follow: true },
 };

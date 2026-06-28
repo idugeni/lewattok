@@ -25,7 +25,7 @@ const FEATURES = [
   {
     icon: Clock,
     title: "Auto-expiry",
-    description: "After 15 minutes, everything vanishes permanently. The address, messages, and all data are gone from the server.",
+    description: "After the countdown expires, everything vanishes permanently. The address, messages, and all data are gone from the server.",
     accent: "from-amber-400 to-orange-500",
   },
   {

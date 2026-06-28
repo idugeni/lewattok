@@ -212,7 +212,7 @@ export function InboxPage() {
               Your temporary inbox
             </h1>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-              Choose a custom username or generate a random disposable email address. Auto-deletes in 15 minutes.
+              Choose a custom username or generate a random disposable email address. Auto-deletes after the countdown.
             </p>
           </div>
 
