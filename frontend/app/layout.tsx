@@ -1,20 +1,65 @@
 import type { Metadata } from "next";
+import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/Providers";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { SkipToContent } from "@/components/layout/SkipToContent";
 import "./globals.css";
+
+const fontDisplay = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["500", "600", "700"],
+});
+
+const fontBody = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+  weight: ["400", "500", "600"],
+});
+
+const fontMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500"],
+});
 
 export const metadata: Metadata = {
   title: {
     template: "%s — Aurelion",
-    default: "Aurelion — Temporary Email",
+    default: "Aurelion — Temporary Email That Vanishes",
   },
-  description: "Disposable email that vanishes in 15 minutes.",
+  description:
+    "Generate disposable email addresses that vanish in 15 minutes. No signup, no spam, no tracking. Perfect for developers, QA testing, and privacy.",
+  keywords: [
+    "temporary email",
+    "disposable email",
+    "throwaway email",
+    "temp mail",
+    "email generator",
+    "privacy email",
+    "developer tools",
+    "QA testing",
+  ],
   metadataBase: process.env.NEXT_PUBLIC_APP_URL
     ? new URL(process.env.NEXT_PUBLIC_APP_URL)
     : undefined,
   openGraph: {
     type: "website",
     siteName: "Aurelion",
+    title: "Aurelion — Temporary Email That Vanishes",
+    description:
+      "Generate disposable email addresses that vanish in 15 minutes. No signup, no spam, no tracking.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Aurelion — Temporary Email That Vanishes",
+    description:
+      "Generate disposable email addresses that vanish in 15 minutes.",
   },
   robots: { index: true, follow: true },
 };
@@ -23,34 +68,57 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f0f1f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0d14" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-dvh flex flex-col">
+    <html
+      lang="en"
+      className="dark"
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var t = localStorage.getItem('aurelion-theme') || 'dark';
+                var c = document.documentElement.classList;
+                c.remove('light','dark');
+                if (t === 'system') {
+                  c.add(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                } else {
+                  c.add(t);
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body
+        className={`min-h-dvh flex flex-col ${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
+        style={{ fontFamily: "var(--font-body), system-ui, sans-serif" }}
+      >
         <Providers>
-          <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-xl">
-            <div className="flex items-center justify-between px-5 h-14 max-w-screen-2xl mx-auto w-full">
-              <div className="flex items-center gap-3">
-                <div className="size-8 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20">
-                  A
-                </div>
-                <span className="text-base font-semibold tracking-tight">aurelion</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <a href="/docs" className="hidden sm:inline text-xs text-muted-foreground font-mono tracking-tight hover:text-foreground transition-colors">
-                  API
-                </a>
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  15m ttl
-                </span>
-              </div>
-            </div>
-          </header>
-          <main className="flex-1 flex flex-col">{children}</main>
-          <Toaster theme="dark" position="bottom-center" richColors closeButton />
+          <SkipToContent />
+          <Header />
+          <main id="main-content" className="flex-1 flex flex-col">
+            {children}
+          </main>
+          <Footer />
+          <Toaster
+            theme="dark"
+            position="bottom-center"
+            richColors
+            closeButton
+            toastOptions={{
+              className: "font-[family-name:var(--font-body)]",
+            }}
+          />
         </Providers>
       </body>
     </html>

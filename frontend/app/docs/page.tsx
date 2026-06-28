@@ -1,414 +1,341 @@
-import type { Metadata } from "next";
-import { BookOpen, Key, Mail, Inbox, Shield, Code, Terminal, Globe, Plus, Trash2, List, Settings } from "lucide-react";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { CodeBlock } from "@/components/ui/code-block";
+import { Button } from "@/components/ui/button";
 import { GenerateKeyButton } from "@/components/GenerateKeyButton";
+import {
+  Key,
+  Mail,
+  Inbox,
+  ArrowRight,
+  Clock,
+  Shield,
+  AlertTriangle,
+  BookOpen,
+  Zap,
+  Terminal,
+} from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "API Documentation",
-  description:
-    "Programmatically generate disposable email addresses and retrieve incoming messages. API reference for inbox creation, message retrieval, and key management.",
-  openGraph: {
-    title: "API Documentation — Aurelion",
-    description:
-      "Programmatically generate disposable email addresses and retrieve incoming messages.",
+const ENDPOINTS = [
+  {
+    method: "POST",
+    path: "/api/generate",
+    description: "Generate a new API key for programmatic access.",
+    icon: Key,
   },
-};
+  {
+    method: "POST",
+    path: "/api/inbox",
+    description: "Create a new temporary inbox. Optionally specify a custom username (e.g. yourname@aurelion.web.id). If no username is provided, a random address is generated.",
+    icon: Mail,
+    requiresAuth: false,
+  },
+  {
+    method: "GET",
+    path: "/api/messages",
+    description: "Retrieve all messages for a given email address. Does not auto-poll — call this endpoint when you want to check for new emails.",
+    icon: Inbox,
+    requiresAuth: false,
+  },
+  {
+    method: "DELETE",
+    path: "/api/inbox",
+    description: "Delete an inbox from the server, freeing up the address and its messages before the 15-minute TTL.",
+    icon: Inbox,
+    requiresAuth: false,
+  },
+  {
+    method: "DELETE",
+    path: "/api/messages",
+    description: "Delete all messages for a given recipient address from the server.",
+    icon: Inbox,
+    requiresAuth: false,
+  },
+];
 
-const BASE_URL = process.env.NEXT_PUBLIC_WORKER_URL!;
+const SIDEBAR_SECTIONS = [
+  { id: "getting-started", label: "Getting Started", icon: Zap },
+  { id: "authentication", label: "Authentication", icon: Key },
+  { id: "endpoints", label: "API Endpoints", icon: Terminal },
+  { id: "rate-limits", label: "Rate Limits", icon: Clock },
+  { id: "errors", label: "Error Codes", icon: AlertTriangle },
+];
 
 export default function DocsPage() {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState("getting-started");
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(true);
+  }, []);
+
+  // Scroll spy
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: "-80px 0px -60% 0px", threshold: 0 }
+    );
+
+    SIDEBAR_SECTIONS.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const domain = process.env.NEXT_PUBLIC_APP_DOMAIN || "aurelion.web.id";
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || `https://api.${domain}`;
+
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
-        <header className="space-y-3 sm:space-y-4">
-          <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] sm:text-xs font-medium">
-            <BookOpen className="size-3 sm:size-3.5" />
-            API Documentation
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Aurelion API</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
-            Programmatically generate disposable email addresses and retrieve incoming messages.
-            Perfect for testing, automation, and privacy-focused workflows.
-          </p>
-        </header>
-
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Key className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">Authentication</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              All API requests require an API key passed via the <code className="code-inline">X-API-Key</code> header.
-              Include it in every request to authenticated endpoints.
+    <div className="flex-1 max-w-screen-xl mx-auto w-full px-4 sm:px-5 py-8">
+      <div className="flex gap-8">
+        {/* Sidebar */}
+        <aside className="hidden lg:block w-56 shrink-0 sticky top-20 self-start">
+          <nav className="space-y-1" aria-label="Documentation navigation">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3 px-3">
+              Documentation
             </p>
-            <div className="bg-muted/50 rounded-xl border p-4 space-y-2">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                <Terminal className="size-3" />
-                Example
-              </div>
-              <pre className="text-sm overflow-x-auto">
-                <span className="text-muted-foreground"># Replace with your key</span>
-                <br />
-                X-API-Key: <span className="text-emerald-500">al_a805d555d3b875d4a88605219bae4a6261babddebfc1f8c9</span>
-              </pre>
-            </div>
-            <div className="bg-muted/50 rounded-xl border p-4 text-sm space-y-2">
-              <p className="font-medium text-foreground">Key Format</p>
-              <p>Keys follow the pattern <code className="code-inline">al_</code> followed by 48 hexadecimal characters (24 random bytes).</p>
-            </div>
-            <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border p-6 space-y-4">
-              <div className="flex items-center gap-2">
-                <Key className="size-4 text-primary" />
-                <p className="text-sm font-medium text-foreground">Get a free API key</p>
-              </div>
-              <GenerateKeyButton />
-            </div>
-          </div>
-        </section>
+            {SIDEBAR_SECTIONS.map(({ id, label, icon: Icon }) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                  activeSection === id
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </a>
+            ))}
+          </nav>
+        </aside>
 
-        <section className="space-y-4 sm:space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Globe className="size-4 text-primary" />
+        {/* Content */}
+        <div
+          className={`flex-1 min-w-0 space-y-12 transition-all duration-700 ${
+            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+        >
+          {/* Header */}
+          <header className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BookOpen className="size-5 text-aurora-indigo" />
+              <h1
+                className="text-3xl sm:text-4xl font-bold tracking-tight"
+                style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
+              >
+                API Documentation
+              </h1>
             </div>
-            <h2 className="text-lg sm:text-xl font-semibold">Base URL</h2>
-          </div>
-          <div className="bg-muted/50 rounded-xl border p-3 sm:p-4 overflow-x-auto">
-            <pre className="text-xs sm:text-sm text-primary font-mono whitespace-nowrap">{BASE_URL}</pre>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Mail className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">Generate an Inbox</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Create a new disposable email address. The address is randomly generated and
-              ready to receive messages immediately.
+            <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
+              Create temporary inboxes and retrieve messages programmatically.
+              Perfect for automated testing, CI pipelines, and privacy-first workflows.
             </p>
-            <div className="bg-muted/50 rounded-xl border divide-y">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 text-xs font-mono font-bold">POST</span>
-                  <code className="code-inline">/api/v1/inboxes</code>
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">201 Created</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Request</p>
-                  <pre className="text-sm">
-                    <span className="text-muted-foreground">curl -X POST {BASE_URL}/api/v1/inboxes \</span>
-                    <br />
-                    <span className="text-muted-foreground">  -H &quot;X-API-Key: your_api_key_here&quot;</span>
-                  </pre>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Response</p>
-                  <pre className="text-sm">
-                    {`{`}
-                    <br />
-                    <span className="ml-4">&quot;address&quot;: &quot;bold.wave4404@aurelion.web.id&quot;</span>
-                    <br />
-                    {`}`}
-                  </pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+          </header>
 
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Inbox className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">Retrieve Messages</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Fetch all messages for a specific inbox. Messages expire 15 minutes after receipt.
+          {/* Getting Started */}
+          <section id="getting-started" className="space-y-5 scroll-mt-24">
+            <SectionHeader icon={Zap} title="Getting Started" />
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Aurelion provides a REST API to create temporary inboxes and read
+              messages. Most endpoints require an API key. Generate one below or
+              via the <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">POST /api/generate</code> endpoint.
             </p>
-            <div className="bg-muted/50 rounded-xl border divide-y">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-500 text-xs font-mono font-bold">GET</span>
-                  <code className="code-inline">/api/v1/inboxes/:email/messages</code>
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">200 OK</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Request</p>
-                  <pre className="text-sm">
-                    <span className="text-muted-foreground">curl {BASE_URL}/api/v1/inboxes/bold.wave4404@aurelion.web.id/messages \</span>
-                    <br />
-                    <span className="text-muted-foreground">  -H &quot;X-API-Key: your_api_key_here&quot;</span>
-                  </pre>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Response</p>
-                  <pre className="text-sm">
-                    {`{`}
-                    <br />
-                    <span className="ml-4">&quot;messages&quot;: [</span>
-                    <br />
-                    <span className="ml-8">{`{`}</span>
-                    <br />
-                    <span className="ml-12">&quot;id&quot;: &quot;uuid&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;message_id&quot;: &quot;uuid&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;recipient&quot;: &quot;bold.wave4404@aurelion.web.id&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;sender&quot;: &quot;sender@example.com&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;subject&quot;: &quot;Hello!&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;body_text&quot;: &quot;...&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;body_html&quot;: &quot;&lt;html&gt;...&lt;/html&gt;&quot;,</span>
-                    <br />
-                    <span className="ml-12">&quot;created_at&quot;: &quot;2026-01-01T00:00:00.000Z&quot;</span>
-                    <br />
-                    <span className="ml-8">{`}`}</span>
-                    <br />
-                    <span className="ml-4">]</span>
-                    <br />
-                    {`}`}
-                  </pre>
-                </div>
-              </div>
+            <div className="max-w-md">
+              <GenerateKeyButton onKeyGenerated={setApiKey} />
             </div>
-            <div className="bg-muted/50 rounded-xl border divide-y">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-500 text-xs font-mono font-bold">GET</span>
-                  <code className="code-inline">/api/v1/messages?recipient=...</code>
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">200 OK</span>
+            {apiKey && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">Set your API key as a header:</p>
+                <CodeBlock
+                  language="bash"
+                  filename="setup.sh"
+                  code={`export AURELION_API_KEY="${apiKey}"`}
+                />
               </div>
-              <div className="p-4 space-y-3">
-                <p className="text-xs text-muted-foreground">Alternative query-parameter style.</p>
-                <div>
-                  <p className="text-xs text-muted-foreground font-mono mb-2">Request</p>
-                  <pre className="text-sm">
-                    <span className="text-muted-foreground">curl &quot;{BASE_URL}/api/v1/messages?recipient=bold.wave4404@aurelion.web.id&amp;since=2026-01-01T00:00:00.000Z&quot; \</span>
-                    <br />
-                    <span className="text-muted-foreground">  -H &quot;X-API-Key: your_api_key_here&quot;</span>
-                  </pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+            )}
+          </section>
 
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Code className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">Quick Start (JavaScript)</h2>
-          </div>
-          <div className="bg-muted/50 rounded-xl border p-4">
-            <pre className="text-sm overflow-x-auto leading-relaxed">{`const BASE = "${BASE_URL}";
-
-// Create inbox
-const create = await fetch(BASE + "/api/v1/inboxes", {
-  method: "POST",
-  headers: { "X-API-Key": "your_api_key_here" }
-});
-const data = await create.json();
-// data.address -> "bold.wave4404@aurelion.web.id"
-
-// Get messages
-const res = await fetch(BASE + "/api/v1/messages?recipient=" + data.address, {
-  headers: { "X-API-Key": "your_api_key_here" }
-});
-const inbox = await res.json();
-// inbox.messages -> [...]`}</pre>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Settings className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">API Key Management</h2>
-          </div>
-          <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Administrators can generate, list, and revoke API keys using the master API key.
-              Keys are stored in KV and validated on every request.
+          {/* Authentication */}
+          <section id="authentication" className="space-y-5 scroll-mt-24">
+            <SectionHeader icon={Key} title="Authentication" />
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Include your API key in the <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">Authorization</code> header
+              for endpoints that require authentication. The <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">GET /api/messages</code> endpoint
+              is public and does not require a key.
             </p>
+            <CodeBlock
+              language="bash"
+              filename="auth-example.sh"
+              code={`curl -X POST ${baseUrl}/api/inbox \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json"`}
+            />
+          </section>
 
-            <div className="bg-muted/50 rounded-xl border divide-y">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Plus className="size-3.5 text-emerald-500" />
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 text-xs font-mono font-bold">POST</span>
-                  <code className="code-inline">/api/v1/admin/keys</code>
+          {/* Endpoints */}
+          <section id="endpoints" className="space-y-6 scroll-mt-24">
+            <SectionHeader icon={Terminal} title="API Endpoints" />
+
+            {ENDPOINTS.map((endpoint) => (
+              <EndpointCard
+                key={endpoint.path}
+                endpoint={endpoint}
+                baseUrl={baseUrl}
+                apiKey={apiKey}
+              />
+            ))}
+          </section>
+
+          {/* Rate Limits */}
+          <section id="rate-limits" className="space-y-5 scroll-mt-24">
+            <SectionHeader icon={Clock} title="Rate Limits" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { label: "Inbox creation", value: "10/hour", desc: "Per API key" },
+                { label: "Message fetch", value: "60/min", desc: "Per address" },
+                { label: "API key generation", value: "5/hour", desc: "Per IP" },
+              ].map((limit) => (
+                <div
+                  key={limit.label}
+                  className="rounded-xl border bg-card/50 p-4 space-y-1"
+                >
+                  <p className="text-2xl font-bold tracking-tight font-mono text-primary">
+                    {limit.value}
+                  </p>
+                  <p className="text-sm font-medium">{limit.label}</p>
+                  <p className="text-xs text-muted-foreground">{limit.desc}</p>
                 </div>
-                <span className="text-xs text-muted-foreground font-mono">201 Created</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <p>Generate a new API key. Returns the full key (only shown once at creation).</p>
-                <pre className="text-sm">
-                  <span className="text-muted-foreground">curl -X POST {BASE_URL}/api/v1/admin/keys \</span>
-                  <br />
-                  <span className="text-muted-foreground">  -H &quot;X-API-Key: your_master_key&quot;</span>
-                </pre>
-                <pre className="text-sm">{`{`}
-                  <br />
-                  <span className="ml-4">&quot;key&quot;: &quot;al_a805d555d3b875d4a88605219bae4a6261babddebfc1f8c9&quot;,</span>
-                  <br />
-                  <span className="ml-4">&quot;name&quot;: &quot;&quot;,</span>
-                  <br />
-                  <span className="ml-4">&quot;created&quot;: &quot;2026-06-27T20:00:18.000Z&quot;,</span>
-                  <br />
-                  <span className="ml-4">&quot;last_used&quot;: null</span>
-                  <br />
-                  {`}`}
-                </pre>
-              </div>
+              ))}
             </div>
-
-            <div className="bg-muted/50 rounded-xl border divide-y">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <List className="size-3.5 text-sky-500" />
-                  <span className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-500 text-xs font-mono font-bold">GET</span>
-                  <code className="code-inline">/api/v1/admin/keys</code>
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">200 OK</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <p>List all API keys. Full keys are truncated for security.</p>
-                <pre className="text-sm">{`{`}
-                  <br />
-                  <span className="ml-4">&quot;keys&quot;: [</span>
-                  <br />
-                  <span className="ml-8">{`{`}</span>
-                  <br />
-                  <span className="ml-12">&quot;key&quot;: &quot;al_a805...&quot;,</span>
-                  <br />
-                  <span className="ml-12">&quot;name&quot;: &quot;&quot;,</span>
-                  <br />
-                  <span className="ml-12">&quot;created&quot;: &quot;2026-06-27T20:00:18.000Z&quot;,</span>
-                  <br />
-                  <span className="ml-12">&quot;last_used&quot;: &quot;2026-06-27T20:01:00.000Z&quot;</span>
-                  <br />
-                  <span className="ml-8">{`}`}</span>
-                  <br />
-                  <span className="ml-4">]</span>
-                  <br />
-                  {`}`}
-                </pre>
-              </div>
-            </div>
-
-            <div className="bg-muted/50 rounded-xl border divide-y">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Trash2 className="size-3.5 text-red-500" />
-                  <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-500 text-xs font-mono font-bold">DELETE</span>
-                  <code className="code-inline">/api/v1/admin/keys</code>
-                </div>
-                <span className="text-xs text-muted-foreground font-mono">200 OK</span>
-              </div>
-              <div className="p-4 space-y-3">
-                <p>Revoke an API key. Include the full key in the request body.</p>
-                <pre className="text-sm">
-                  <span className="text-muted-foreground">curl -X DELETE {BASE_URL}/api/v1/admin/keys \</span>
-                  <br />
-                  <span className="text-muted-foreground">  -H &quot;X-API-Key: your_master_key&quot; \</span>
-                  <br />
-                  <span className="text-muted-foreground">  -H &quot;Content-Type: application/json&quot; \</span>
-                  <br />
-                  <span className="text-muted-foreground">  -d &apos;{`{`}&quot;key&quot;: &quot;al_a805...&quot;{`}`}&apos;</span>
-                </pre>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Shield className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">Rate Limits</h2>
-          </div>
-          <div className="bg-muted/50 rounded-xl border p-4 text-sm text-muted-foreground leading-relaxed space-y-2">
-            <p>Current rate limits per API key:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li><strong>60 requests per minute</strong> across all authenticated endpoints</li>
-              <li><strong>1 key per hour</strong> for self-service key generation (per IP)</li>
-            </ul>
-            <p className="text-xs text-muted-foreground/70 mt-3">
-              Exceeding these limits returns <code className="code-inline">429 Too Many Requests</code>.
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              If you exceed the rate limit, the API will respond with{" "}
+              <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">429 Too Many Requests</code>.
+              Implement exponential backoff in your client.
             </p>
-          </div>
-        </section>
+          </section>
 
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Code className="size-4 text-primary" />
-            </div>
-            <h2 className="text-xl font-semibold">Errors</h2>
-          </div>
-          <div className="bg-muted/50 rounded-xl border p-4 text-sm text-muted-foreground space-y-3">
-            <p>All errors return a JSON body:</p>
-            <pre className="text-sm">
-              {`{`}
-              <br />
-              <span className="ml-4">&quot;error&quot;: &quot;Invalid or missing API key&quot;</span>
-              <br />
-              {`}`}
-            </pre>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+          {/* Errors */}
+          <section id="errors" className="space-y-5 scroll-mt-24">
+            <SectionHeader icon={AlertTriangle} title="Error Codes" />
+            <div className="rounded-xl border overflow-hidden">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="text-left py-2 pr-4 font-medium">Code</th>
-                    <th className="text-left py-2 font-medium">Description</th>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left p-3 font-semibold text-xs uppercase tracking-wider">Code</th>
+                    <th className="text-left p-3 font-semibold text-xs uppercase tracking-wider">Description</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  <tr>
-                    <td className="py-2 pr-4 font-mono">400</td>
-                    <td className="py-2">Bad request — missing or invalid parameters</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 pr-4 font-mono">401</td>
-                    <td className="py-2">Invalid or missing API key</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 pr-4 font-mono">405</td>
-                    <td className="py-2">Method not allowed for this endpoint</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 pr-4 font-mono">429</td>
-                    <td className="py-2">Rate limit exceeded</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 pr-4 font-mono">500</td>
-                    <td className="py-2">Internal server error</td>
-                  </tr>
+                <tbody>
+                  {[
+                    ["400", "Bad request — missing or invalid parameters"],
+                    ["401", "Unauthorized — missing or invalid API key"],
+                    ["404", "Not found — address does not exist or has expired"],
+                    ["429", "Rate limited — too many requests, retry later"],
+                    ["500", "Internal server error — unexpected failure"],
+                  ].map(([code, desc]) => (
+                    <tr key={code} className="border-b last:border-0">
+                      <td className="p-3">
+                        <code className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{code}</code>
+                      </td>
+                      <td className="p-3 text-muted-foreground">{desc}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
+    </div>
+  );
+}
+
+function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <h2
+      className="flex items-center gap-2.5 text-xl sm:text-2xl font-bold tracking-tight"
+      style={{ fontFamily: "var(--font-display), system-ui, sans-serif" }}
+    >
+      <Icon className="size-5 text-aurora-indigo" />
+      {title}
+    </h2>
+  );
+}
+
+function EndpointCard({
+  endpoint,
+  baseUrl,
+  apiKey,
+}: {
+  endpoint: (typeof ENDPOINTS)[number];
+  baseUrl: string;
+  apiKey: string | null;
+}) {
+  const Icon = endpoint.icon;
+  const [expanded, setExpanded] = useState(false);
+
+  const methodColors: Record<string, string> = {
+    GET: "bg-mint/15 text-mint",
+    POST: "bg-aurora-indigo/15 text-aurora-indigo",
+    PUT: "bg-amber-500/15 text-amber-500",
+    DELETE: "bg-destructive/15 text-destructive",
+  };
+
+  const exampleCode = endpoint.method === "GET"
+    ? `curl -X GET "${baseUrl}${endpoint.path}?address=your-temp@aurelion.web.id"`
+    : `curl -X ${endpoint.method} "${baseUrl}${endpoint.path}" \\
+  -H "Authorization: Bearer ${apiKey || "YOUR_API_KEY"}" \\
+  -H "Content-Type: application/json"`;
+
+  return (
+    <div className="rounded-xl border bg-card/50 overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 p-4 text-left cursor-pointer hover:bg-muted/20 transition-colors"
+        aria-expanded={expanded}
+      >
+        <div className="size-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+          <Icon className="size-4 text-muted-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${methodColors[endpoint.method]}`}>
+              {endpoint.method}
+            </span>
+            <code className="text-sm font-mono">{endpoint.path}</code>
+            {endpoint.requiresAuth && (
+              <span className="text-[10px] font-mono text-muted-foreground bg-muted/80 px-1.5 py-0.5 rounded">
+                auth
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground truncate">{endpoint.description}</p>
+        </div>
+        <ArrowRight className={`size-4 text-muted-foreground transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
+      </button>
+
+      {expanded && (
+        <div className="border-t p-4 space-y-3 bg-muted/10">
+          <p className="text-sm text-muted-foreground">{endpoint.description}</p>
+          <CodeBlock
+            language="bash"
+            filename="example.sh"
+            code={exampleCode}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -10,9 +10,13 @@ interface ParsedEmail {
 
 export class MimeParser {
   private raw: string;
+  private maxDepth: number;
+  private currentDepth: number;
 
-  constructor(raw: string) {
+  constructor(raw: string, maxDepth: number = 3, currentDepth: number = 0) {
     this.raw = raw;
+    this.maxDepth = maxDepth;
+    this.currentDepth = currentDepth;
   }
 
   parse(): ParsedEmail {
@@ -96,12 +100,15 @@ export class MimeParser {
   }
 
   private parseMultipart(body: string, boundary: string): ParsedEmail {
+    if (this.currentDepth >= this.maxDepth) {
+      return { text: body.slice(0, 1024).trim(), html: "" };
+    }
     const parts = this.splitByBoundary(body, boundary);
     let text = "";
     let html = "";
 
     for (const part of parts) {
-      const parsed = new MimeParser(part).parse();
+      const parsed = new MimeParser(part, this.maxDepth, this.currentDepth + 1).parse();
       if (parsed.text) text += (text ? "\n" : "") + parsed.text;
       if (parsed.html) html += parsed.html;
     }

@@ -1,10 +1,26 @@
-import { NextResponse } from "next/server";
-import { generateRandomAddress } from "@/lib/email";
+import { NextRequest, NextResponse } from "next/server";
+import { generateRandomAddress, buildAddress, validateUsername, getDomain } from "@/lib/email";
 import type { GenerateEmailResponse } from "@/lib/types";
 
-export async function GET(): Promise<NextResponse<GenerateEmailResponse | { error: string }>> {
+const WORKER_URL = process.env.WORKER_URL || process.env.NEXT_PUBLIC_WORKER_URL;
+
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<GenerateEmailResponse | { error: string }>> {
   try {
-    const address = generateRandomAddress();
+    const username = request.nextUrl.searchParams.get("username");
+    let address: string;
+
+    if (username) {
+      const err = validateUsername(username);
+      if (err) {
+        return NextResponse.json({ error: err }, { status: 400 });
+      }
+      address = buildAddress(username.toLowerCase().trim(), getDomain());
+    } else {
+      address = generateRandomAddress();
+    }
+
     return NextResponse.json({ address });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

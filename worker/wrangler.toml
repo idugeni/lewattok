@@ -9,3 +9,4 @@ id = "3e13531dd258466a9f0cc19f32f43e24"
 
 [vars]
 DOMAIN = "aurelion.web.id"
+ALLOWED_ORIGINS = "https://aurelion.web.id,https://aurelion.vercel.app"

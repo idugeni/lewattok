@@ -1,83 +1,78 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Key, Copy, Check, Loader2, AlertCircle } from "lucide-react";
+import { Key, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
-export function GenerateKeyButton() {
-  const [key, setKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface GenerateKeyButtonProps {
+  onKeyGenerated?: (apiKey: string) => void;
+}
 
-  const generate = async () => {
-    setLoading(true);
-    setError(null);
-    setKey(null);
+export function GenerateKeyButton({ onKeyGenerated }: GenerateKeyButtonProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
+  const handleGenerate = async () => {
+    setIsGenerating(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_WORKER_URL}/api/v1/public/key`, { method: "POST" });
+      const res = await fetch("/api/generate", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to generate key");
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate key");
-      setKey(data.key);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      setError(msg);
-      toast.error("Failed to generate key", { description: msg });
+      setApiKey(data.apiKey);
+      onKeyGenerated?.(data.apiKey);
+      toast.success("API key generated");
+    } catch {
+      toast.error("Failed to generate API key");
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
-  const copy = async () => {
-    if (!key) return;
-    await navigator.clipboard.writeText(key);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast.success("API key copied!", { description: "You won't be able to see it again." });
+  const copyKey = () => {
+    if (apiKey) {
+      navigator.clipboard.writeText(apiKey);
+      toast.success("API key copied");
+    }
   };
 
-  if (key) {
+  if (apiKey) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-medium text-emerald-500">Key generated</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <code className="flex-1 px-3 py-2 rounded-lg bg-background border font-mono text-sm break-all">
-            {key}
+      <div className="w-full space-y-2">
+        <div className="flex items-center gap-2 p-3 rounded-xl border bg-muted/30">
+          <Key className="size-4 text-muted-foreground shrink-0" />
+          <code className="flex-1 text-xs font-mono truncate text-foreground">
+            {apiKey}
           </code>
-          <Button size="sm" variant="outline" className="shrink-0 h-9" onClick={copy}>
-            {copied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={copyKey}
+            className="h-7 text-xs shrink-0"
+          >
+            Copy
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Copy this key now. You won&apos;t be able to see it again.
+        <p className="text-[11px] text-muted-foreground text-center">
+          Save this key — it won&apos;t be shown again
         </p>
-        <Button size="sm" variant="ghost" className="text-xs" onClick={() => { setKey(null); setError(null); }}>
-          Generate another
-        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      {error && (
-        <div className="flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-          <AlertCircle className="size-3.5 shrink-0" />
-          <span>{error}</span>
-        </div>
+    <Button
+      variant="outline"
+      onClick={handleGenerate}
+      disabled={isGenerating}
+      className="w-full h-11 rounded-xl gap-2 text-sm font-medium"
+    >
+      {isGenerating ? (
+        <Loader2 className="size-4 animate-spin" />
+      ) : (
+        <Key className="size-4" />
       )}
-      <Button onClick={generate} disabled={loading} className="gap-2">
-        {loading ? <Loader2 className="size-4 animate-spin" /> : <Key className="size-4" />}
-        {loading ? "Generating..." : "Get your API key"}
-      </Button>
-      <p className="text-xs text-muted-foreground">
-        Rate-limited to one key per IP per hour.
-      </p>
-    </div>
+      Generate API key
+    </Button>
   );
 }
